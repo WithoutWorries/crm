@@ -79,7 +79,7 @@ export default function ActivitiesPage() {
                       <div>
                         <p className="font-medium text-slate-900 dark:text-fmea-text">{activity.subject}</p>
                         <p className="text-xs text-slate-600 dark:text-fmea-dim mt-0.5">
-                          {ACTIVITY_TYPE_LABELS[activity.type as any]}
+                          {(ACTIVITY_TYPE_LABELS as Record<string, string>)[activity.type] ?? activity.type}
                         </p>
                       </div>
                       <span className="text-xs text-slate-500 dark:text-fmea-dim">

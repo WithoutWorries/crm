@@ -1,19 +1,4 @@
-import {
-  OpportunityStage,
-  RelationshipType,
-  TaskPriority,
-  Industry,
-  CompanyType,
-  ActivityType,
-  TaskStatus,
-  InfluenceLevel,
-  ProjectPhase,
-  ServiceType,
-  RegulatoryFramework,
-  OpportunityUrgency,
-} from '@prisma/client'
-
-export const STAGE_LABELS: Record<OpportunityStage, string> = {
+export const STAGE_LABELS: Record<string, string> = {
   NEW_LEAD: 'New Lead',
   INITIAL_CONTACT: 'Initial Contact',
   TECHNICAL_DISCUSSION: 'Technical Discussion',
@@ -24,7 +9,7 @@ export const STAGE_LABELS: Record<OpportunityStage, string> = {
   LOST: 'Lost',
 }
 
-export const STAGE_COLORS: Record<OpportunityStage, string> = {
+export const STAGE_COLORS: Record<string, string> = {
   NEW_LEAD: 'bg-slate-100 text-slate-800',
   INITIAL_CONTACT: 'bg-blue-100 text-blue-800',
   TECHNICAL_DISCUSSION: 'bg-indigo-100 text-indigo-800',
@@ -35,7 +20,7 @@ export const STAGE_COLORS: Record<OpportunityStage, string> = {
   LOST: 'bg-red-100 text-red-800',
 }
 
-export const RELATIONSHIP_LABELS: Record<RelationshipType, string> = {
+export const RELATIONSHIP_LABELS: Record<string, string> = {
   COLD: 'Cold',
   WARM: 'Warm',
   REFERRAL: 'Referral',
@@ -44,7 +29,7 @@ export const RELATIONSHIP_LABELS: Record<RelationshipType, string> = {
   PARTNER: 'Partner',
 }
 
-export const RELATIONSHIP_COLORS: Record<RelationshipType, string> = {
+export const RELATIONSHIP_COLORS: Record<string, string> = {
   COLD: 'bg-slate-100 text-slate-800',
   WARM: 'bg-orange-100 text-orange-800',
   REFERRAL: 'bg-blue-100 text-blue-800',
@@ -53,35 +38,35 @@ export const RELATIONSHIP_COLORS: Record<RelationshipType, string> = {
   PARTNER: 'bg-indigo-100 text-indigo-800',
 }
 
-export const PRIORITY_LABELS: Record<TaskPriority, string> = {
+export const PRIORITY_LABELS: Record<string, string> = {
   LOW: 'Low',
   MEDIUM: 'Medium',
   HIGH: 'High',
   URGENT: 'Urgent',
 }
 
-export const PRIORITY_COLORS: Record<TaskPriority, string> = {
+export const PRIORITY_COLORS: Record<string, string> = {
   LOW: 'bg-slate-100 text-slate-800',
   MEDIUM: 'bg-blue-100 text-blue-800',
   HIGH: 'bg-orange-100 text-orange-800',
   URGENT: 'bg-red-100 text-red-800',
 }
 
-export const TASK_STATUS_LABELS: Record<TaskStatus, string> = {
+export const TASK_STATUS_LABELS: Record<string, string> = {
   OPEN: 'Open',
   IN_PROGRESS: 'In Progress',
   COMPLETED: 'Completed',
   CANCELLED: 'Cancelled',
 }
 
-export const TASK_STATUS_COLORS: Record<TaskStatus, string> = {
+export const TASK_STATUS_COLORS: Record<string, string> = {
   OPEN: 'bg-blue-100 text-blue-800',
   IN_PROGRESS: 'bg-yellow-100 text-yellow-800',
   COMPLETED: 'bg-green-100 text-green-800',
   CANCELLED: 'bg-slate-100 text-slate-800',
 }
 
-export const INDUSTRY_LABELS: Record<Industry, string> = {
+export const INDUSTRY_LABELS: Record<string, string> = {
   AEROSPACE: 'Aerospace',
   DEFENCE: 'Defence',
   MARINE: 'Marine',
@@ -95,7 +80,7 @@ export const INDUSTRY_LABELS: Record<Industry, string> = {
   OTHER: 'Other',
 }
 
-export const COMPANY_TYPE_LABELS: Record<CompanyType, string> = {
+export const COMPANY_TYPE_LABELS: Record<string, string> = {
   OEM: 'OEM',
   STARTUP: 'Startup',
   CONSULTANCY: 'Consultancy',
@@ -105,7 +90,7 @@ export const COMPANY_TYPE_LABELS: Record<CompanyType, string> = {
   OTHER: 'Other',
 }
 
-export const ACTIVITY_TYPE_LABELS: Record<ActivityType, string> = {
+export const ACTIVITY_TYPE_LABELS: Record<string, string> = {
   EMAIL: 'Email',
   CALL: 'Call',
   MEETING: 'Meeting',
@@ -119,7 +104,7 @@ export const ACTIVITY_TYPE_LABELS: Record<ActivityType, string> = {
   OTHER: 'Other',
 }
 
-export const INFLUENCE_LEVEL_LABELS: Record<InfluenceLevel, string> = {
+export const INFLUENCE_LEVEL_LABELS: Record<string, string> = {
   DECISION_MAKER: 'Decision Maker',
   INFLUENCER: 'Influencer',
   TECHNICAL_EVALUATOR: 'Technical Evaluator',
@@ -127,7 +112,7 @@ export const INFLUENCE_LEVEL_LABELS: Record<InfluenceLevel, string> = {
   UNKNOWN: 'Unknown',
 }
 
-export const INFLUENCE_LEVEL_COLORS: Record<InfluenceLevel, string> = {
+export const INFLUENCE_LEVEL_COLORS: Record<string, string> = {
   DECISION_MAKER: 'bg-red-100 text-red-800',
   INFLUENCER: 'bg-orange-100 text-orange-800',
   TECHNICAL_EVALUATOR: 'bg-blue-100 text-blue-800',
@@ -135,7 +120,7 @@ export const INFLUENCE_LEVEL_COLORS: Record<InfluenceLevel, string> = {
   UNKNOWN: 'bg-slate-100 text-slate-800',
 }
 
-export const PROJECT_PHASE_LABELS: Record<ProjectPhase, string> = {
+export const PROJECT_PHASE_LABELS: Record<string, string> = {
   CONCEPT: 'Concept',
   FEASIBILITY: 'Feasibility',
   DESIGN: 'Design',
@@ -149,7 +134,7 @@ export const PROJECT_PHASE_LABELS: Record<ProjectPhase, string> = {
   UNKNOWN: 'Unknown',
 }
 
-export const SERVICE_TYPE_LABELS: Record<ServiceType, string> = {
+export const SERVICE_TYPE_LABELS: Record<string, string> = {
   RELIABILITY_ENGINEERING: 'Reliability Engineering',
   SAFETY_ANALYSIS: 'Safety Analysis',
   RAMS: 'RAMS',
@@ -174,7 +159,7 @@ export const SERVICE_TYPE_LABELS: Record<ServiceType, string> = {
   OTHER: 'Other',
 }
 
-export const REGULATORY_FRAMEWORK_LABELS: Record<RegulatoryFramework, string> = {
+export const REGULATORY_FRAMEWORK_LABELS: Record<string, string> = {
   EASA: 'EASA',
   FAA: 'FAA',
   FDA: 'FDA',
@@ -194,14 +179,14 @@ export const REGULATORY_FRAMEWORK_LABELS: Record<RegulatoryFramework, string> = 
   OTHER: 'Other',
 }
 
-export const URGENCY_LABELS: Record<OpportunityUrgency, string> = {
+export const URGENCY_LABELS: Record<string, string> = {
   LOW: 'Low',
   MEDIUM: 'Medium',
   HIGH: 'High',
   CRITICAL: 'Critical',
 }
 
-export const URGENCY_COLORS: Record<OpportunityUrgency, string> = {
+export const URGENCY_COLORS: Record<string, string> = {
   LOW: 'bg-slate-100 text-slate-800',
   MEDIUM: 'bg-blue-100 text-blue-800',
   HIGH: 'bg-orange-100 text-orange-800',
