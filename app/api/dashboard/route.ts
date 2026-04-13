@@ -4,7 +4,7 @@ import { OpportunityStage } from '@prisma/client'
 
 const USER_ID = 'user_1'
 
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     const now = new Date()
 
