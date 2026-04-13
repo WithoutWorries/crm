@@ -1,0 +1,412 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum CompanyType {
+  OEM
+  STARTUP
+  CONSULTANCY
+  SYSTEM_INTEGRATOR
+  OPERATOR
+  GOVERNMENT
+  OTHER
+}
+
+enum Industry {
+  AEROSPACE
+  DEFENCE
+  MARINE
+  MEDICAL_DEVICE
+  PHARMACEUTICAL
+  OIL_AND_GAS
+  RENEWABLE_ENERGY
+  RAIL
+  AUTOMOTIVE
+  INDUSTRIAL
+  OTHER
+}
+
+enum InfluenceLevel {
+  DECISION_MAKER
+  INFLUENCER
+  TECHNICAL_EVALUATOR
+  PROCUREMENT
+  UNKNOWN
+}
+
+enum RelationshipType {
+  COLD
+  WARM
+  REFERRAL
+  PAST_CLIENT
+  CURRENT_CLIENT
+  PARTNER
+}
+
+enum OpportunityStage {
+  NEW_LEAD
+  INITIAL_CONTACT
+  TECHNICAL_DISCUSSION
+  PROBLEM_DEFINED
+  PROPOSAL_SENT
+  NEGOTIATION
+  WON
+  LOST
+}
+
+enum ProjectPhase {
+  CONCEPT
+  FEASIBILITY
+  DESIGN
+  DEVELOPMENT
+  VERIFICATION
+  VALIDATION
+  CERTIFICATION
+  DEPLOYMENT
+  IN_SERVICE
+  SUPPORT
+  UNKNOWN
+}
+
+enum RegulatoryFramework {
+  EASA
+  FAA
+  FDA
+  EU_MDR
+  IEC_60812
+  IEC_61508
+  IEC_60601
+  EN_50126
+  DEF_STAN_00_600
+  DEF_STAN_00_56
+  DEF_STAN_00_40
+  ARP_4761
+  ARP_5580
+  ASD_S2000M
+  API_RP_17N
+  ISO_26262
+  OTHER
+}
+
+enum ServiceType {
+  RELIABILITY_ENGINEERING
+  SAFETY_ANALYSIS
+  RAMS
+  ILS
+  SUPPORTABILITY
+  MAINTENANCE_ANALYSIS
+  SPARES_ANALYSIS
+  OBSOLESCENCE_MANAGEMENT
+  FMEA
+  FMECA
+  FTA
+  FHA
+  EVENT_TREE_ANALYSIS
+  RBD
+  WEIBULL_ANALYSIS
+  MONTE_CARLO
+  RISK_ASSESSMENT
+  CERTIFICATION_SUPPORT
+  REGULATORY_COMPLIANCE
+  WHOLE_LIFE_COST
+  TRAINING
+  OTHER
+}
+
+enum ActivityType {
+  EMAIL
+  CALL
+  MEETING
+  LINKEDIN_MESSAGE
+  INTRO
+  PROPOSAL_SENT
+  PROPOSAL_REVIEW
+  FOLLOW_UP
+  NOTE
+  WORKSHOP
+  OTHER
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum TaskStatus {
+  OPEN
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum OpportunityUrgency {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+model User {
+  id            String        @id @default(cuid())
+  email         String        @unique
+  name          String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  companies     Company[]
+  contacts      Contact[]
+  opportunities Opportunity[]
+  activities    Activity[]
+  tasks         Task[]
+  notes         Note[]
+  tags          Tag[]
+}
+
+model Company {
+  id                    String            @id @default(cuid())
+  userId                String
+  name                  String
+  website               String?
+  country               String?
+  city                  String?
+  industry              Industry?
+  companyType           CompanyType?
+  regulatoryEnvironment RegulatoryFramework[]
+  notes                 String?
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
+
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  contacts      Contact[]
+  opportunities Opportunity[]
+  activities    Activity[]
+  tasks         Task[]
+  notesList     Note[]
+  tags          CompanyTag[]
+
+  @@index([userId, name])
+  @@index([industry])
+}
+
+model Contact {
+  id               String           @id @default(cuid())
+  userId           String
+  companyId        String?
+  firstName        String
+  lastName         String?
+  fullName         String
+  email            String?
+  phone            String?
+  linkedinUrl      String?
+  jobTitle         String?
+  department       String?
+  influenceLevel   InfluenceLevel   @default(UNKNOWN)
+  relationshipType RelationshipType @default(COLD)
+  technicalFocus   String?
+  notes            String?
+  lastContactDate  DateTime?
+  nextFollowUpDate DateTime?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  user                 User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  company              Company?             @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  opportunities        Opportunity[]
+  opportunityContacts  OpportunityContact[]
+  activities           Activity[]
+  tasks                Task[]
+  notesList            Note[]
+  tags                 ContactTag[]
+
+  @@index([userId, fullName])
+  @@index([companyId])
+  @@index([relationshipType])
+  @@index([nextFollowUpDate])
+}
+
+model Opportunity {
+  id                   String                 @id @default(cuid())
+  userId               String
+  companyId            String?
+  primaryContactId     String?
+  title                String
+  description          String?
+  stage                OpportunityStage       @default(NEW_LEAD)
+  industry             Industry?
+  systemType           String?
+  projectPhase         ProjectPhase           @default(UNKNOWN)
+  regulatoryDrivers    RegulatoryFramework[]
+  services             ServiceType[]
+  estimatedValue       Decimal?               @db.Decimal(12, 2)
+  currency             String                 @default("EUR")
+  probabilityPercent   Int?
+  urgency              OpportunityUrgency     @default(MEDIUM)
+  source               String?
+  painPoints           String?
+  competitor           String?
+  expectedCloseDate    DateTime?
+  nextAction           String?
+  lastActivityDate     DateTime?
+  lostReason           String?
+  wonDate              DateTime?
+  lostDate             DateTime?
+  createdAt            DateTime               @default(now())
+  updatedAt            DateTime               @updatedAt
+
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  company       Company?    @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  primaryContact Contact?   @relation(fields: [primaryContactId], references: [id], onDelete: SetNull)
+  contacts      OpportunityContact[]
+  activities    Activity[]
+  tasks         Task[]
+  notes         Note[]
+  tags          OpportunityTag[]
+
+  @@index([userId, stage])
+  @@index([companyId])
+  @@index([primaryContactId])
+  @@index([expectedCloseDate])
+  @@index([industry])
+  @@index([projectPhase])
+}
+
+model OpportunityContact {
+  opportunityId String
+  contactId     String
+  role          String?
+
+  opportunity Opportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  contact     Contact     @relation(fields: [contactId], references: [id], onDelete: Cascade)
+
+  @@id([opportunityId, contactId])
+  @@index([contactId])
+}
+
+model Activity {
+  id             String       @id @default(cuid())
+  userId         String
+  type           ActivityType
+  subject        String
+  summary        String?
+  details        String?
+  happenedAt     DateTime
+  contactId      String?
+  opportunityId  String?
+  companyId      String?
+  nextStep       String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  contact     Contact?     @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  opportunity Opportunity? @relation(fields: [opportunityId], references: [id], onDelete: SetNull)
+  company     Company?     @relation(fields: [companyId], references: [id], onDelete: SetNull)
+
+  @@index([userId, happenedAt])
+  @@index([contactId])
+  @@index([opportunityId])
+  @@index([companyId])
+}
+
+model Task {
+  id             String       @id @default(cuid())
+  userId         String
+  title          String
+  description    String?
+  dueDate        DateTime?
+  priority       TaskPriority @default(MEDIUM)
+  status         TaskStatus   @default(OPEN)
+  completedAt    DateTime?
+  contactId      String?
+  opportunityId  String?
+  companyId      String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  contact     Contact?     @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  opportunity Opportunity? @relation(fields: [opportunityId], references: [id], onDelete: SetNull)
+  company     Company?     @relation(fields: [companyId], references: [id], onDelete: SetNull)
+
+  @@index([userId, status, dueDate])
+  @@index([contactId])
+  @@index([opportunityId])
+  @@index([companyId])
+}
+
+model Note {
+  id             String       @id @default(cuid())
+  userId         String
+  content        String
+  contactId      String?
+  opportunityId  String?
+  companyId      String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  contact     Contact?     @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  opportunity Opportunity? @relation(fields: [opportunityId], references: [id], onDelete: SetNull)
+  company     Company?     @relation(fields: [companyId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+  @@index([contactId])
+  @@index([opportunityId])
+  @@index([companyId])
+}
+
+model Tag {
+  id        String   @id @default(cuid())
+  userId    String
+  name      String
+  color     String?
+  createdAt DateTime @default(now())
+
+  user          User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  companies     CompanyTag[]
+  contacts      ContactTag[]
+  opportunities OpportunityTag[]
+
+  @@unique([userId, name])
+  @@index([userId])
+}
+
+model CompanyTag {
+  companyId String
+  tagId     String
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  tag     Tag     @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([companyId, tagId])
+  @@index([tagId])
+}
+
+model ContactTag {
+  contactId String
+  tagId     String
+
+  contact Contact @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  tag     Tag     @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([contactId, tagId])
+  @@index([tagId])
+}
+
+model OpportunityTag {
+  opportunityId String
+  tagId         String
+
+  opportunity Opportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  tag         Tag         @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([opportunityId, tagId])
+  @@index([tagId])
+}
