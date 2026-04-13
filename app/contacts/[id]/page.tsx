@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { INFLUENCE_LEVEL_LABELS, INFLUENCE_LEVEL_COLORS, RELATIONSHIP_LABELS, RELATIONSHIP_COLORS } from '@/lib/constants'
 import { Badge } from '@/components/shared/badge'
-import { formatDate, formatRelativeDate } from '@/lib/utils'
+import { formatRelativeDate } from '@/lib/utils'
 import { ArrowLeft, Edit2, Mail, Phone, Linkedin } from 'lucide-react'
 import Link from 'next/link'
 
