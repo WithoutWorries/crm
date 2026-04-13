@@ -24,7 +24,8 @@ export async function GET(request: NextRequest) {
               }
             : {},
           companyId ? { companyId } : {},
-          relationshipType ? { relationshipType } : {},
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          relationshipType ? { relationshipType: relationshipType as any } : {},
         ],
       },
       include: {

@@ -11,7 +11,8 @@ export async function GET(request: NextRequest) {
     const tasks = await prisma.task.findMany({
       where: {
         userId: USER_ID,
-        ...(status ? { status } : {}),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ...(status ? { status: status as any } : {}),
       },
       include: {
         contact: true,

@@ -15,7 +15,8 @@ export async function GET(request: NextRequest) {
         userId: USER_ID,
         ...(contactId ? { contactId } : {}),
         ...(opportunityId ? { opportunityId } : {}),
-        ...(type ? { type } : {}),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ...(type ? { type: type as any } : {}),
       },
       include: {
         contact: true,

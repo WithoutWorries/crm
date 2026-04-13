@@ -21,7 +21,8 @@ export async function GET(request: NextRequest) {
                 ],
               }
             : {},
-          stage ? { stage } : {},
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          stage ? { stage: stage as any } : {},
         ],
       },
       include: {
