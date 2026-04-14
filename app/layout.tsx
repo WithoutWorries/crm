@@ -1,6 +1,5 @@
 import type { Metadata } from 'next'
-import { Sidebar } from '@/components/layout/sidebar'
-import { TopBar } from '@/components/layout/top-bar'
+import { AppShell } from '@/components/layout/app-shell'
 import { ThemeProvider } from '@/components/shared/theme-provider'
 import './globals.css'
 
@@ -18,11 +17,7 @@ export default function RootLayout({
     <html lang="en">
       <body>
         <ThemeProvider>
-          <Sidebar />
-          <TopBar />
-          <main className="ml-60 pt-16 pb-8 px-8 min-h-screen bg-slate-50 dark:bg-fmea-bg">
-            {children}
-          </main>
+          <AppShell>{children}</AppShell>
         </ThemeProvider>
       </body>
     </html>

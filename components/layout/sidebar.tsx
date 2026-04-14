@@ -1,7 +1,6 @@
 'use client'
 
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard,
@@ -27,11 +26,10 @@ const navItems = [
 
 export function Sidebar() {
   const pathname = usePathname()
-  const router = useRouter()
 
   const handleLogout = async () => {
     await fetch('/api/auth/logout', { method: 'POST' })
-    router.push('/login')
+    window.location.href = '/login'
   }
 
   return (
