@@ -1,6 +1,5 @@
 'use client'
 
-import { STAGE_LABELS, PROBABILITY_COLORS } from '@/lib/constants'
 import { formatCurrency } from '@/lib/utils'
 import Link from 'next/link'
 
@@ -19,7 +18,6 @@ export function OpportunityCard({
   companyName,
   value,
   probability,
-  stage,
 }: OpportunityCardProps) {
   const weightedValue =
     value && probability ? Math.round((value * probability) / 100) : 0
@@ -64,11 +62,3 @@ export function OpportunityCard({
   )
 }
 
-// Placeholder for future colors
-const PROBABILITY_COLORS_PLACEHOLDER: Record<number, string> = {
-  10: 'text-red-600',
-  25: 'text-orange-600',
-  50: 'text-yellow-600',
-  75: 'text-green-600',
-  100: 'text-green-700',
-}

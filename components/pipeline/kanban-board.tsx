@@ -1,6 +1,5 @@
 'use client'
 
-import { useState } from 'react'
 import { OpportunityStage } from '@prisma/client'
 import { STAGE_LABELS } from '@/lib/constants'
 import { OpportunityCard } from './opportunity-card'

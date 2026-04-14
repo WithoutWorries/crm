@@ -1,6 +1,6 @@
 'use client'
 
-import { formatRelativeDate, isOverdue } from '@/lib/utils'
+import { formatRelativeDate } from '@/lib/utils'
 import { PRIORITY_LABELS, PRIORITY_COLORS } from '@/lib/constants'
 import { Task } from '@prisma/client'
 import { Badge } from '@/components/shared/badge'

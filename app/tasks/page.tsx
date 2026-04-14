@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { PRIORITY_LABELS, PRIORITY_COLORS, TASK_STATUS_LABELS } from '@/lib/constants'
+import { PRIORITY_LABELS, PRIORITY_COLORS } from '@/lib/constants'
 import { Badge } from '@/components/shared/badge'
 import { formatRelativeDate, isOverdue, isDueToday, isDueSoon } from '@/lib/utils'
 import { Task } from '@prisma/client'

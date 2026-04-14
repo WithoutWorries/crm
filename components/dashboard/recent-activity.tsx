@@ -11,7 +11,6 @@ import {
   Users,
   Zap,
   BookOpen,
-  AlertCircle,
 } from 'lucide-react'
 
 interface ActivityWithRelations extends ActivityType {
