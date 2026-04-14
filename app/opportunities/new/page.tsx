@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import {
   INDUSTRY_LABELS,
@@ -22,7 +22,7 @@ interface Contact {
   fullName: string
 }
 
-export default function NewOpportunityPage() {
+function NewOpportunityForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [loading, setLoading] = useState(false)
@@ -452,5 +452,13 @@ export default function NewOpportunityPage() {
         </div>
       </form>
     </div>
+  )
+}
+
+export default function NewOpportunityPage() {
+  return (
+    <Suspense fallback={<div className="text-center py-12">Loading...</div>}>
+      <NewOpportunityForm />
+    </Suspense>
   )
 }
