@@ -6,6 +6,7 @@ import { INDUSTRY_LABELS, COMPANY_TYPE_LABELS, REGULATORY_FRAMEWORK_LABELS } fro
 import { Badge } from '@/components/shared/badge'
 import { ArrowLeft, Edit2, ExternalLink } from 'lucide-react'
 import Link from 'next/link'
+import { NotesSection } from '@/components/shared/notes-section'
 
 interface Company {
   id: string
@@ -138,14 +139,10 @@ export default function CompanyDetailPage() {
                 </div>
               )}
 
-              {company.notes && (
-                <div>
-                  <p className="text-sm text-slate-600 dark:text-slate-400 mb-1">Notes</p>
-                  <p className="text-sm text-slate-900 dark:text-slate-200">{company.notes}</p>
-                </div>
-              )}
             </div>
           </div>
+
+          <NotesSection companyId={company.id} />
         </div>
 
         {/* Sidebar */}

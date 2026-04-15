@@ -17,6 +17,7 @@ import { formatCurrency, formatDate } from '@/lib/utils'
 import { ActivityTimeline } from '@/components/opportunities/activity-timeline'
 import { ArrowLeft, Edit2 } from 'lucide-react'
 import Link from 'next/link'
+import { NotesSection } from '@/components/shared/notes-section'
 
 interface Opportunity {
   id: string
@@ -178,6 +179,8 @@ export default function OpportunityDetailPage() {
               <ActivityTimeline activities={opportunity.activities} />
             </div>
           )}
+
+          <NotesSection opportunityId={opportunity.id} />
         </div>
 
         {/* Sidebar */}

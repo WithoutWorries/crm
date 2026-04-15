@@ -7,6 +7,7 @@ import { Badge } from '@/components/shared/badge'
 import { formatRelativeDate } from '@/lib/utils'
 import { ArrowLeft, Edit2, Mail, Phone, Linkedin } from 'lucide-react'
 import Link from 'next/link'
+import { NotesSection } from '@/components/shared/notes-section'
 
 interface Contact {
   id: string
@@ -157,12 +158,7 @@ export default function ContactDetailPage() {
             </div>
           </div>
 
-          {contact.notes && (
-            <div className="bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 p-6">
-              <h3 className="font-semibold text-slate-900 dark:text-slate-100 mb-3">Notes</h3>
-              <p className="text-sm text-slate-900 dark:text-slate-200">{contact.notes}</p>
-            </div>
-          )}
+          <NotesSection contactId={contact.id} />
         </div>
 
         {/* Sidebar */}
