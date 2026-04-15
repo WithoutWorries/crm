@@ -8,6 +8,7 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams
     const contactId = searchParams.get('contactId') || ''
     const opportunityId = searchParams.get('opportunityId') || ''
+    const companyId = searchParams.get('companyId') || ''
     const type = searchParams.get('type') || ''
 
     const activities = await prisma.activity.findMany({
@@ -15,6 +16,7 @@ export async function GET(request: NextRequest) {
         userId: USER_ID,
         ...(contactId ? { contactId } : {}),
         ...(opportunityId ? { opportunityId } : {}),
+        ...(companyId ? { companyId } : {}),
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         ...(type ? { type: type as any } : {}),
       },
