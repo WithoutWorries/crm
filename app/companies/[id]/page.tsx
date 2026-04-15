@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { INDUSTRY_LABELS, COMPANY_TYPE_LABELS, REGULATORY_FRAMEWORK_LABELS } from '@/lib/constants'
 import { Badge } from '@/components/shared/badge'
-import { ArrowLeft, Edit2, ExternalLink } from 'lucide-react'
+import { ArrowLeft, Edit2, ExternalLink, Trash2 } from 'lucide-react'
 import Link from 'next/link'
 import { NotesSection } from '@/components/shared/notes-section'
 
@@ -29,6 +29,20 @@ export default function CompanyDetailPage() {
   const router = useRouter()
   const [company, setCompany] = useState<Company | null>(null)
   const [loading, setLoading] = useState(true)
+  const [confirmDelete, setConfirmDelete] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+
+  const handleDelete = async () => {
+    setDeleting(true)
+    try {
+      await fetch(`/api/companies/${params.id}`, { method: 'DELETE' })
+      router.push('/companies')
+    } catch (error) {
+      console.error('Error deleting company:', error)
+      setDeleting(false)
+      setConfirmDelete(false)
+    }
+  }
 
   useEffect(() => {
     if (params.id) {
@@ -75,13 +89,41 @@ export default function CompanyDetailPage() {
             {company.city && company.country ? `${company.city}, ${company.country}` : company.country || ''}
           </p>
         </div>
-        <Link
-          href={`/companies/${company.id}/edit`}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-slate-100 text-sm font-medium hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
-        >
-          <Edit2 className="h-5 w-5" />
-          Edit
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link
+            href={`/companies/${company.id}/edit`}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-slate-100 text-sm font-medium hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
+          >
+            <Edit2 className="h-4 w-4" />
+            Edit
+          </Link>
+          {!confirmDelete ? (
+            <button
+              onClick={() => setConfirmDelete(true)}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm font-medium hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors"
+            >
+              <Trash2 className="h-4 w-4" />
+              Delete
+            </button>
+          ) : (
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-slate-600 dark:text-slate-400">Delete company?</span>
+              <button
+                onClick={handleDelete}
+                disabled={deleting}
+                className="px-3 py-2 rounded-lg bg-red-600 text-white text-sm font-medium hover:bg-red-700 disabled:opacity-50 transition-colors"
+              >
+                {deleting ? 'Deleting…' : 'Yes, delete'}
+              </button>
+              <button
+                onClick={() => setConfirmDelete(false)}
+                className="px-3 py-2 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 text-sm font-medium hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

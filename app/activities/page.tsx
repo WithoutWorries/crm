@@ -4,11 +4,22 @@ import { useEffect, useState } from 'react'
 import { ACTIVITY_TYPE_LABELS } from '@/lib/constants'
 import { formatDate } from '@/lib/utils'
 import { Activity } from '@prisma/client'
-import { Mail, Phone, Users, MessageSquare, FileText, BookOpen, Zap } from 'lucide-react'
+import { Mail, Phone, Users, MessageSquare, FileText, BookOpen, Zap, Trash2 } from 'lucide-react'
 
 export default function ActivitiesPage() {
   const [activities, setActivities] = useState<Activity[]>([])
   const [loading, setLoading] = useState(true)
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
+
+  const handleDeleteActivity = async (id: string) => {
+    try {
+      await fetch(`/api/activities/${id}`, { method: 'DELETE' })
+      setActivities((prev) => prev.filter((a) => a.id !== id))
+      setConfirmDeleteId(null)
+    } catch (error) {
+      console.error('Error deleting activity:', error)
+    }
+  }
 
   useEffect(() => {
     fetchActivities()
@@ -75,16 +86,42 @@ export default function ActivitiesPage() {
                     </div>
                   </div>
                   <div className="flex-1">
-                    <div className="flex items-start justify-between">
-                      <div>
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1">
                         <p className="font-medium text-slate-900 dark:text-fmea-text">{activity.subject}</p>
                         <p className="text-xs text-slate-600 dark:text-fmea-dim mt-0.5">
                           {(ACTIVITY_TYPE_LABELS as Record<string, string>)[activity.type] ?? activity.type}
                         </p>
                       </div>
-                      <span className="text-xs text-slate-500 dark:text-fmea-dim">
-                        {formatDate(activity.happenedAt)}
-                      </span>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <span className="text-xs text-slate-500 dark:text-fmea-dim">
+                          {formatDate(activity.happenedAt)}
+                        </span>
+                        {confirmDeleteId === activity.id ? (
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={() => handleDeleteActivity(activity.id)}
+                              className="px-2 py-1 text-xs rounded bg-red-600 text-white hover:bg-red-700 transition-colors"
+                            >
+                              Delete
+                            </button>
+                            <button
+                              onClick={() => setConfirmDeleteId(null)}
+                              className="px-2 py-1 text-xs rounded bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => setConfirmDeleteId(activity.id)}
+                            className="p-1.5 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                            title="Delete activity"
+                          >
+                            <Trash2 className="h-4 w-4 text-slate-300 dark:text-slate-600 hover:text-red-500 dark:hover:text-red-400" />
+                          </button>
+                        )}
+                      </div>
                     </div>
                     {activity.summary && (
                       <p className="text-sm text-slate-600 dark:text-fmea-dim mt-2">{activity.summary}</p>

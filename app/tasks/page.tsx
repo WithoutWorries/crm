@@ -5,7 +5,7 @@ import { PRIORITY_LABELS, PRIORITY_COLORS } from '@/lib/constants'
 import { Badge } from '@/components/shared/badge'
 import { formatRelativeDate, isOverdue, isDueToday, isDueSoon } from '@/lib/utils'
 import { Task } from '@prisma/client'
-import { Plus, Check } from 'lucide-react'
+import { Plus, Check, Trash2 } from 'lucide-react'
 import Link from 'next/link'
 
 export default function TasksPage() {
@@ -28,6 +28,8 @@ export default function TasksPage() {
     }
   }
 
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
+
   const handleCompleteTask = async (taskId: string) => {
     try {
       await fetch(`/api/tasks/${taskId}`, {
@@ -38,6 +40,16 @@ export default function TasksPage() {
       fetchTasks()
     } catch (error) {
       console.error('Error updating task:', error)
+    }
+  }
+
+  const handleDeleteTask = async (taskId: string) => {
+    try {
+      await fetch(`/api/tasks/${taskId}`, { method: 'DELETE' })
+      setTasks((prev) => prev.filter((t) => t.id !== taskId))
+      setConfirmDeleteId(null)
+    } catch (error) {
+      console.error('Error deleting task:', error)
     }
   }
 
@@ -88,7 +100,7 @@ export default function TasksPage() {
         )}
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2">
         <Badge
           label={PRIORITY_LABELS[task.priority]}
           color={PRIORITY_COLORS[task.priority]}
@@ -100,6 +112,30 @@ export default function TasksPage() {
             title="Mark complete"
           >
             <Check className="h-5 w-5 text-slate-400 dark:text-fmea-dim hover:text-slate-600 dark:hover:text-fmea-text" />
+          </button>
+        )}
+        {confirmDeleteId === task.id ? (
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => handleDeleteTask(task.id)}
+              className="px-2 py-1 text-xs rounded bg-red-600 text-white hover:bg-red-700 transition-colors"
+            >
+              Delete
+            </button>
+            <button
+              onClick={() => setConfirmDeleteId(null)}
+              className="px-2 py-1 text-xs rounded bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={() => setConfirmDeleteId(task.id)}
+            className="p-2 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+            title="Delete task"
+          >
+            <Trash2 className="h-4 w-4 text-slate-300 dark:text-slate-600 hover:text-red-500 dark:hover:text-red-400" />
           </button>
         )}
       </div>
