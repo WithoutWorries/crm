@@ -60,6 +60,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
 export async function DELETE(_request: NextRequest, { params }: { params: { id: string } }) {
   const session = requireSession()
   if (session instanceof NextResponse) return session
+  if (session.role !== 'ADMIN') return NextResponse.json({ error: 'Only admins can delete records' }, { status: 403 })
 
   try {
     const contact = await prisma.contact.findUnique({ where: { id: params.id } })

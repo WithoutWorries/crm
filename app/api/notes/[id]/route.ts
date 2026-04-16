@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { requireSession } from '@/lib/session'
 
 export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
+  const session = requireSession()
+  if (session instanceof NextResponse) return session
+
   try {
     const body = await request.json()
     const { content } = body
@@ -23,6 +27,10 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
 }
 
 export async function DELETE(_request: NextRequest, { params }: { params: { id: string } }) {
+  const session = requireSession()
+  if (session instanceof NextResponse) return session
+  if (session.role !== 'ADMIN') return NextResponse.json({ error: 'Only admins can delete records' }, { status: 403 })
+
   try {
     await prisma.note.delete({
       where: { id: params.id },
