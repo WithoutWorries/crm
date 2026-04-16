@@ -6,8 +6,6 @@ import { PipelineSummary } from '@/components/dashboard/pipeline-summary'
 import { RecentActivity } from '@/components/dashboard/recent-activity'
 import { UpcomingTasks } from '@/components/dashboard/upcoming-tasks'
 
-const USER_ID = 'user_1'
-
 export default async function DashboardPage() {
   const now = new Date()
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
@@ -25,45 +23,29 @@ export default async function DashboardPage() {
     recentActivities,
     upcomingTasks,
   ] = await Promise.all([
-    prisma.opportunity.count({
-      where: { userId: USER_ID, stage: { notIn: ['WON', 'LOST'] } },
-    }),
-    prisma.opportunity.count({
-      where: { userId: USER_ID, stage: 'WON', wonDate: { gte: yearStart } },
-    }),
+    prisma.opportunity.count({ where: { stage: { notIn: ['WON', 'LOST'] } } }),
+    prisma.opportunity.count({ where: { stage: 'WON', wonDate: { gte: yearStart } } }),
     prisma.opportunity.groupBy({
       by: ['stage'],
-      where: { userId: USER_ID },
       _count: true,
       _sum: { estimatedValue: true },
     }),
     prisma.opportunity.findMany({
-      where: { userId: USER_ID, stage: { notIn: ['WON', 'LOST'] } },
+      where: { stage: { notIn: ['WON', 'LOST'] } },
       select: { estimatedValue: true, probabilityPercent: true },
     }),
     prisma.task.count({
-      where: {
-        userId: USER_ID,
-        status: { notIn: ['COMPLETED', 'CANCELLED'] },
-        dueDate: { lt: today },
-      },
+      where: { status: { notIn: ['COMPLETED', 'CANCELLED'] }, dueDate: { lt: today } },
     }),
-    prisma.contact.count({
-      where: { userId: USER_ID, nextFollowUpDate: { lte: weekFromNow } },
-    }),
-    prisma.contact.count({ where: { userId: USER_ID } }),
+    prisma.contact.count({ where: { nextFollowUpDate: { lte: weekFromNow } } }),
+    prisma.contact.count(),
     prisma.activity.findMany({
-      where: { userId: USER_ID },
       include: { contact: true, opportunity: true },
       orderBy: { happenedAt: 'desc' },
       take: 6,
     }),
     prisma.task.findMany({
-      where: {
-        userId: USER_ID,
-        status: { notIn: ['COMPLETED', 'CANCELLED'] },
-        dueDate: { lte: weekFromNow },
-      },
+      where: { status: { notIn: ['COMPLETED', 'CANCELLED'] }, dueDate: { lte: weekFromNow } },
       orderBy: { dueDate: 'asc' },
       take: 6,
     }),
@@ -87,7 +69,6 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-slate-900 dark:text-fmea-hi">{greeting}, Fraser</h1>
         <p className="text-sm text-slate-500 dark:text-fmea-dim mt-0.5">
@@ -95,7 +76,6 @@ export default async function DashboardPage() {
         </p>
       </div>
 
-      {/* Stats */}
       <StatsCards
         openOpportunities={openOpps}
         weightedPipeline={Math.round(weightedTotal)}
@@ -105,7 +85,6 @@ export default async function DashboardPage() {
         wonOpportunities={wonOpps}
       />
 
-      {/* Pipeline + Activity */}
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
         <div className="lg:col-span-3">
           <PipelineSummary data={pipelineByStage as any} />
@@ -115,7 +94,6 @@ export default async function DashboardPage() {
         </div>
       </div>
 
-      {/* Tasks */}
       <UpcomingTasks tasks={upcomingTasks} />
     </div>
   )

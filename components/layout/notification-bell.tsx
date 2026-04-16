@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, type FC } from 'react'
 import { Bell, Building2, Users, Target, Activity } from 'lucide-react'
 
 interface AuditEntry {
@@ -18,7 +18,7 @@ interface NotificationsData {
   recent: AuditEntry[]
 }
 
-const ENTITY_ICON: Record<string, React.FC<{ className?: string }>> = {
+const ENTITY_ICON: Record<string, FC<{ className?: string }>> = {
   Contact: Users,
   Company: Building2,
   Opportunity: Target,
