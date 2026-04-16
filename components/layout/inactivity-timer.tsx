@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { COOKIE_NAME } from '@/lib/session'
 
 // How long before signing the user out (30 minutes)
 const INACTIVITY_LIMIT_MS = 30 * 60 * 1000
