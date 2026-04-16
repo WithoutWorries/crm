@@ -5,8 +5,11 @@ import { ACTIVITY_TYPE_LABELS } from '@/lib/constants'
 import { formatDate } from '@/lib/utils'
 import { Activity } from '@prisma/client'
 import { Mail, Phone, Users, MessageSquare, FileText, BookOpen, Zap, Trash2 } from 'lucide-react'
+import { useCurrentUser } from '@/hooks/use-current-user'
 
 export default function ActivitiesPage() {
+  const currentUser = useCurrentUser()
+  const isAdmin = currentUser?.role === 'ADMIN'
   const [activities, setActivities] = useState<Activity[]>([])
   const [loading, setLoading] = useState(true)
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
@@ -98,7 +101,7 @@ export default function ActivitiesPage() {
                         <span className="text-xs text-slate-500 dark:text-fmea-dim">
                           {formatDate(activity.happenedAt)}
                         </span>
-                        {confirmDeleteId === activity.id ? (
+                        {isAdmin && (confirmDeleteId === activity.id ? (
                           <div className="flex items-center gap-1">
                             <button
                               onClick={() => handleDeleteActivity(activity.id)}
@@ -121,7 +124,7 @@ export default function ActivitiesPage() {
                           >
                             <Trash2 className="h-4 w-4 text-slate-300 dark:text-slate-600 hover:text-red-500 dark:hover:text-red-400" />
                           </button>
-                        )}
+                        ))}
                       </div>
                     </div>
                     {activity.summary && (

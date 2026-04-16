@@ -7,8 +7,11 @@ import { formatRelativeDate, isOverdue, isDueToday, isDueSoon } from '@/lib/util
 import { Task } from '@prisma/client'
 import { Plus, Check, Trash2 } from 'lucide-react'
 import Link from 'next/link'
+import { useCurrentUser } from '@/hooks/use-current-user'
 
 export default function TasksPage() {
+  const currentUser = useCurrentUser()
+  const isAdmin = currentUser?.role === 'ADMIN'
   const [tasks, setTasks] = useState<Task[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -115,7 +118,7 @@ export default function TasksPage() {
             <Check className="h-5 w-5 text-slate-400 dark:text-fmea-dim hover:text-slate-600 dark:hover:text-fmea-text" />
           </button>
         )}
-        {confirmDeleteId === task.id ? (
+        {isAdmin && (confirmDeleteId === task.id ? (
           <div className="flex items-center gap-1">
             <button
               onClick={() => handleDeleteTask(task.id)}
@@ -138,7 +141,7 @@ export default function TasksPage() {
           >
             <Trash2 className="h-4 w-4 text-slate-300 dark:text-slate-600 hover:text-red-500 dark:hover:text-red-400" />
           </button>
-        )}
+        ))}
       </div>
     </div>
   )

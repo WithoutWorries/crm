@@ -9,6 +9,7 @@ import { ArrowLeft, Edit2, Mail, Phone, Linkedin, Trash2 } from 'lucide-react'
 import Link from 'next/link'
 import { NotesSection } from '@/components/shared/notes-section'
 import { ActivityTimeline } from '@/components/opportunities/activity-timeline'
+import { useCurrentUser } from '@/hooks/use-current-user'
 
 type Tab = 'overview' | 'activity' | 'notes'
 
@@ -41,6 +42,8 @@ interface Activity {
 }
 
 export default function ContactDetailPage() {
+  const currentUser = useCurrentUser()
+  const isAdmin = currentUser?.role === 'ADMIN'
   const params = useParams()
   const router = useRouter()
   const [contact, setContact] = useState<Contact | null>(null)
@@ -132,7 +135,7 @@ export default function ContactDetailPage() {
             <Edit2 className="h-4 w-4" />
             Edit
           </Link>
-          {!confirmDelete ? (
+          {isAdmin && (!confirmDelete ? (
             <button
               onClick={() => setConfirmDelete(true)}
               className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm font-medium hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors"
@@ -150,7 +153,7 @@ export default function ContactDetailPage() {
                 Cancel
               </button>
             </div>
-          )}
+          ))}
         </div>
       </div>
 
