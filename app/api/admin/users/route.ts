@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { requireSession } from '@/lib/session'
 import { hashPassword } from '@/lib/auth'
 
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   const session = requireSession()
   if (session instanceof NextResponse) return session
   if (session.role !== 'ADMIN') return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
