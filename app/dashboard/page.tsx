@@ -1,12 +1,20 @@
 export const dynamic = 'force-dynamic'
 
 import { prisma } from '@/lib/prisma'
+import { cookies } from 'next/headers'
+import { verifySessionToken, COOKIE_NAME } from '@/lib/session'
 import { StatsCards } from '@/components/dashboard/stats-cards'
 import { PipelineSummary } from '@/components/dashboard/pipeline-summary'
 import { RecentActivity } from '@/components/dashboard/recent-activity'
 import { UpcomingTasks } from '@/components/dashboard/upcoming-tasks'
 
 export default async function DashboardPage() {
+  const token = cookies().get(COOKIE_NAME)?.value
+  const session = token ? verifySessionToken(token) : null
+  const currentUser = session
+    ? await prisma.user.findUnique({ where: { id: session.userId }, select: { name: true } })
+    : null
+  const displayName = currentUser?.name?.split(' ')[0] ?? 'there'
   const now = new Date()
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
   const weekFromNow = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000)
@@ -70,7 +78,7 @@ export default async function DashboardPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900 dark:text-fmea-hi">{greeting}, Fraser</h1>
+        <h1 className="text-2xl font-bold text-slate-900 dark:text-fmea-hi">{greeting}, {displayName}</h1>
         <p className="text-sm text-slate-500 dark:text-fmea-dim mt-0.5">
           {now.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
         </p>
