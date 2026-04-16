@@ -1,6 +1,6 @@
 'use client'
 
-import { Target, TrendingUp, AlertCircle, Clock } from 'lucide-react'
+import { Target, TrendingUp, AlertCircle, Clock, Users, Trophy } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 
 interface StatsCardsProps {
@@ -8,6 +8,8 @@ interface StatsCardsProps {
   weightedPipeline: number
   overdueTasks: number
   followUpsNeeded: number
+  totalContacts: number
+  wonOpportunities: number
 }
 
 export function StatsCards({
@@ -15,53 +17,88 @@ export function StatsCards({
   weightedPipeline,
   overdueTasks,
   followUpsNeeded,
+  totalContacts,
+  wonOpportunities,
 }: StatsCardsProps) {
-  const stats = [
+  const cards = [
     {
       icon: Target,
       label: 'Open Opportunities',
       value: openOpportunities.toString(),
-      color: 'text-blue-600',
-      bgColor: 'bg-blue-50',
+      bg: 'bg-indigo-600',
+      iconBg: 'bg-indigo-500',
+      urgent: false,
     },
     {
       icon: TrendingUp,
-      label: 'Pipeline Value',
+      label: 'Weighted Pipeline',
       value: formatCurrency(weightedPipeline, 'GBP'),
-      color: 'text-green-600',
-      bgColor: 'bg-green-50',
+      bg: 'bg-emerald-600',
+      iconBg: 'bg-emerald-500',
+      urgent: false,
+    },
+    {
+      icon: Trophy,
+      label: 'Won This Year',
+      value: wonOpportunities.toString(),
+      bg: 'bg-teal-600',
+      iconBg: 'bg-teal-500',
+      urgent: false,
     },
     {
       icon: AlertCircle,
       label: 'Overdue Tasks',
       value: overdueTasks.toString(),
-      color: overdueTasks > 0 ? 'text-red-600' : 'text-slate-600',
-      bgColor: overdueTasks > 0 ? 'bg-red-50' : 'bg-slate-50',
+      bg: overdueTasks > 0 ? 'bg-rose-600' : 'bg-slate-500',
+      iconBg: overdueTasks > 0 ? 'bg-rose-500' : 'bg-slate-400',
+      urgent: overdueTasks > 0,
     },
     {
       icon: Clock,
       label: 'Follow-ups Due',
       value: followUpsNeeded.toString(),
-      color: followUpsNeeded > 0 ? 'text-orange-600' : 'text-slate-600',
-      bgColor: followUpsNeeded > 0 ? 'bg-orange-50' : 'bg-slate-50',
+      bg: followUpsNeeded > 0 ? 'bg-amber-500' : 'bg-slate-500',
+      iconBg: followUpsNeeded > 0 ? 'bg-amber-400' : 'bg-slate-400',
+      urgent: followUpsNeeded > 0,
+    },
+    {
+      icon: Users,
+      label: 'Total Contacts',
+      value: totalContacts.toString(),
+      bg: 'bg-violet-600',
+      iconBg: 'bg-violet-500',
+      urgent: false,
     },
   ]
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-      {stats.map((stat) => {
-        const Icon = stat.icon
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+      {cards.map((card) => {
+        const Icon = card.icon
         return (
-          <div key={stat.label} className="bg-white dark:bg-fmea-bg2 rounded-lg shadow-sm p-6 border border-slate-200 dark:border-fmea-border">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-slate-600 dark:text-fmea-dim mb-1">{stat.label}</p>
-                <p className="text-2xl font-bold text-slate-900 dark:text-fmea-text">{stat.value}</p>
-              </div>
-              <div className={`${stat.bgColor} p-3 rounded-lg`}>
-                <Icon className={`h-6 w-6 ${stat.color}`} />
-              </div>
+          <div
+            key={card.label}
+            className={`${card.bg} rounded-xl p-5 text-white relative overflow-hidden`}
+          >
+            {/* Background decoration */}
+            <div className="absolute -right-3 -top-3 opacity-20">
+              <Icon className="h-16 w-16" />
             </div>
+
+            <div className={`inline-flex p-2 rounded-lg ${card.iconBg} mb-3`}>
+              <Icon className="h-4 w-4 text-white" />
+            </div>
+
+            <p className="text-2xl font-bold text-white leading-none mb-1">
+              {card.value}
+            </p>
+            <p className="text-xs text-white/80 font-medium leading-tight">
+              {card.label}
+            </p>
+
+            {card.urgent && (
+              <div className="absolute top-3 right-3 h-2 w-2 rounded-full bg-white animate-pulse" />
+            )}
           </div>
         )
       })}

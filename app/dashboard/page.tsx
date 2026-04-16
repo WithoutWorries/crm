@@ -10,32 +10,62 @@ export default async function DashboardPage() {
   const now = new Date()
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
   const weekFromNow = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000)
+  const yearStart = new Date(now.getFullYear(), 0, 1)
 
-  // Get dashboard data
-  const openOpps = await prisma.opportunity.count({
-    where: {
-      userId: USER_ID,
-      stage: { notIn: ['WON', 'LOST'] },
-    },
-  })
-
-  const oppsByStage = await prisma.opportunity.groupBy({
-    by: ['stage'],
-    where: { userId: USER_ID },
-    _count: true,
-    _sum: { estimatedValue: true },
-  })
-
-  const pipelineByStage = oppsByStage.map((item) => ({
-    stage: item.stage,
-    count: item._count,
-    value: item._sum.estimatedValue ? Math.round(Number(item._sum.estimatedValue)) : 0,
-  }))
-
-  const weightedPipeline = await prisma.opportunity.findMany({
-    where: { userId: USER_ID, stage: { notIn: ['WON', 'LOST'] } },
-    select: { estimatedValue: true, probabilityPercent: true },
-  })
+  const [
+    openOpps,
+    wonOpps,
+    oppsByStage,
+    weightedPipeline,
+    overdueTasks,
+    followUpsNeeded,
+    totalContacts,
+    recentActivities,
+    upcomingTasks,
+  ] = await Promise.all([
+    prisma.opportunity.count({
+      where: { userId: USER_ID, stage: { notIn: ['WON', 'LOST'] } },
+    }),
+    prisma.opportunity.count({
+      where: { userId: USER_ID, stage: 'WON', wonDate: { gte: yearStart } },
+    }),
+    prisma.opportunity.groupBy({
+      by: ['stage'],
+      where: { userId: USER_ID },
+      _count: true,
+      _sum: { estimatedValue: true },
+    }),
+    prisma.opportunity.findMany({
+      where: { userId: USER_ID, stage: { notIn: ['WON', 'LOST'] } },
+      select: { estimatedValue: true, probabilityPercent: true },
+    }),
+    prisma.task.count({
+      where: {
+        userId: USER_ID,
+        status: { notIn: ['COMPLETED', 'CANCELLED'] },
+        dueDate: { lt: today },
+      },
+    }),
+    prisma.contact.count({
+      where: { userId: USER_ID, nextFollowUpDate: { lte: weekFromNow } },
+    }),
+    prisma.contact.count({ where: { userId: USER_ID } }),
+    prisma.activity.findMany({
+      where: { userId: USER_ID },
+      include: { contact: true, opportunity: true },
+      orderBy: { happenedAt: 'desc' },
+      take: 6,
+    }),
+    prisma.task.findMany({
+      where: {
+        userId: USER_ID,
+        status: { notIn: ['COMPLETED', 'CANCELLED'] },
+        dueDate: { lte: weekFromNow },
+      },
+      orderBy: { dueDate: 'asc' },
+      take: 6,
+    }),
+  ])
 
   const weightedTotal = weightedPipeline.reduce((sum, opp) => {
     if (opp.estimatedValue && opp.probabilityPercent) {
@@ -44,64 +74,47 @@ export default async function DashboardPage() {
     return sum
   }, 0)
 
-  const overdueTasks = await prisma.task.count({
-    where: {
-      userId: USER_ID,
-      status: { notIn: ['COMPLETED', 'CANCELLED'] },
-      dueDate: { lt: today },
-    },
-  })
+  const pipelineByStage = oppsByStage.map((item) => ({
+    stage: item.stage,
+    count: item._count,
+    value: item._sum.estimatedValue ? Math.round(Number(item._sum.estimatedValue)) : 0,
+  }))
 
-  const followUpsNeeded = await prisma.contact.count({
-    where: {
-      userId: USER_ID,
-      nextFollowUpDate: { lte: weekFromNow },
-    },
-  })
-
-  const recentActivities = await prisma.activity.findMany({
-    where: { userId: USER_ID },
-    include: { contact: true, opportunity: true },
-    orderBy: { happenedAt: 'desc' },
-    take: 5,
-  })
-
-  const upcomingTasks = await prisma.task.findMany({
-    where: {
-      userId: USER_ID,
-      status: { notIn: ['COMPLETED', 'CANCELLED'] },
-      dueDate: { lte: weekFromNow },
-    },
-    orderBy: { dueDate: 'asc' },
-    take: 5,
-  })
+  const hour = now.getHours()
+  const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening'
 
   return (
-    <div>
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-slate-900 dark:text-fmea-hi">Dashboard</h1>
-        <p className="text-slate-600 dark:text-fmea-dim mt-1">Welcome back, Fraser</p>
+    <div className="space-y-6">
+      {/* Header */}
+      <div>
+        <h1 className="text-2xl font-bold text-slate-900 dark:text-fmea-hi">{greeting}, Fraser</h1>
+        <p className="text-sm text-slate-500 dark:text-fmea-dim mt-0.5">
+          {now.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+        </p>
       </div>
 
+      {/* Stats */}
       <StatsCards
         openOpportunities={openOpps}
         weightedPipeline={Math.round(weightedTotal)}
         overdueTasks={overdueTasks}
         followUpsNeeded={followUpsNeeded}
+        totalContacts={totalContacts}
+        wonOpportunities={wonOpps}
       />
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
-        <div className="lg:col-span-2">
+      {/* Pipeline + Activity */}
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+        <div className="lg:col-span-3">
           <PipelineSummary data={pipelineByStage as any} />
         </div>
-        <div>
+        <div className="lg:col-span-2">
           <RecentActivity activities={recentActivities as any} />
         </div>
       </div>
 
-      <div className="mt-6">
-        <UpcomingTasks tasks={upcomingTasks} />
-      </div>
+      {/* Tasks */}
+      <UpcomingTasks tasks={upcomingTasks} />
     </div>
   )
 }
