@@ -1,7 +1,7 @@
 'use client'
 
-import { formatCurrency } from '@/lib/utils'
 import Link from 'next/link'
+import { Building2 } from 'lucide-react'
 
 interface OpportunityCardProps {
   id: string
@@ -12,53 +12,40 @@ interface OpportunityCardProps {
   stage: string
 }
 
-export function OpportunityCard({
-  id,
-  title,
-  companyName,
-  value,
-  probability,
-}: OpportunityCardProps) {
-  const weightedValue =
-    value && probability ? Math.round((value * probability) / 100) : 0
+export function OpportunityCard({ id, title, companyName, value, probability }: OpportunityCardProps) {
+  const weightedValue = value && probability ? Math.round((value * probability) / 100) : null
 
   return (
     <Link href={`/opportunities/${id}`}>
-      <div className="bg-white dark:bg-fmea-bg3 rounded-lg shadow-sm border border-slate-200 dark:border-fmea-border p-4 hover:shadow-md transition-shadow cursor-pointer">
-        <h4 className="font-medium text-slate-900 dark:text-fmea-text text-sm mb-2 line-clamp-2">{title}</h4>
+      <div className="bg-white dark:bg-fmea-bg3 rounded-lg border border-slate-200 dark:border-fmea-border p-2.5 hover:border-indigo-300 dark:hover:border-fmea-accent hover:shadow-sm transition-all cursor-pointer">
+        <p className="text-xs font-semibold text-slate-900 dark:text-fmea-text leading-snug line-clamp-2 mb-1">
+          {title}
+        </p>
 
         {companyName && (
-          <p className="text-xs text-slate-600 dark:text-fmea-dim mb-3">{companyName}</p>
+          <div className="flex items-center gap-1 mb-2">
+            <Building2 className="h-3 w-3 text-slate-400 dark:text-fmea-dim flex-shrink-0" />
+            <span className="text-xs text-slate-500 dark:text-fmea-dim truncate">{companyName}</span>
+          </div>
         )}
 
-        <div className="space-y-2">
-          {value && (
-            <div className="flex justify-between items-center">
-              <span className="text-xs text-slate-600 dark:text-fmea-dim">Value:</span>
-              <span className="text-sm font-medium text-slate-900 dark:text-fmea-text">
-                {formatCurrency(value, 'GBP')}
+        {(weightedValue || probability) && (
+          <div className="flex items-center justify-between gap-1 pt-1.5 border-t border-slate-100 dark:border-fmea-border">
+            {weightedValue ? (
+              <span className="text-xs font-bold text-indigo-600 dark:text-fmea-accent">
+                £{weightedValue.toLocaleString()}
               </span>
-            </div>
-          )}
-
-          {probability && (
-            <div className="flex justify-between items-center">
-              <span className="text-xs text-slate-600 dark:text-fmea-dim">Probability:</span>
-              <span className="text-sm font-medium text-slate-900 dark:text-fmea-text">{probability}%</span>
-            </div>
-          )}
-
-          {value && probability && (
-            <div className="flex justify-between items-center border-t border-slate-100 dark:border-fmea-border pt-2 mt-2">
-              <span className="text-xs text-slate-600 dark:text-fmea-dim">Weighted:</span>
-              <span className="text-sm font-bold text-indigo-600 dark:text-fmea-accent">
-                {formatCurrency(weightedValue, 'GBP')}
+            ) : (
+              <span />
+            )}
+            {probability && (
+              <span className="text-xs text-slate-400 dark:text-fmea-dim flex-shrink-0">
+                {probability}%
               </span>
-            </div>
-          )}
-        </div>
+            )}
+          </div>
+        )}
       </div>
     </Link>
   )
 }
-
