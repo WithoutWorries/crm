@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireSession } from '@/lib/session'
 
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   const session = requireSession()
   if (session instanceof NextResponse) return session
 
@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
   return NextResponse.json({ unreadCount, recent })
 }
 
-export async function POST(request: NextRequest) {
+export async function POST(_request: NextRequest) {
   // Mark all as read
   const session = requireSession()
   if (session instanceof NextResponse) return session

@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { requireSession } from '@/lib/session'
 import { logAudit } from '@/lib/audit'
 
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(_request: NextRequest, { params }: { params: { id: string } }) {
   const session = requireSession()
   if (session instanceof NextResponse) return session
 
@@ -54,7 +54,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
   }
 }
 
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(_request: NextRequest, { params }: { params: { id: string } }) {
   const session = requireSession()
   if (session instanceof NextResponse) return session
 
