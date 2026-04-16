@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Plus, Building2, Users, Target, CheckSquare, Sun, Moon } from 'lucide-react'
 import Link from 'next/link'
 import { useTheme } from '@/components/shared/theme-provider'
+import { NotificationBell } from '@/components/layout/notification-bell'
 
 export function TopBar() {
   const [isQuickAddOpen, setIsQuickAddOpen] = useState(false)
@@ -21,7 +22,7 @@ export function TopBar() {
       <div className="flex items-center justify-between h-16 px-8">
         <div className="flex-1" />
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           {/* Theme Toggle */}
           <button
             onClick={toggleTheme}
@@ -30,6 +31,9 @@ export function TopBar() {
           >
             {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
           </button>
+
+          {/* Notification Bell */}
+          <NotificationBell />
 
           {/* Quick Add Button */}
           <div className="relative">

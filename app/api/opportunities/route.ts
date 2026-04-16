@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { Decimal } from '@prisma/client/runtime/library'
 import { prisma } from '@/lib/prisma'
-
-const USER_ID = 'user_1'
+import { requireSession } from '@/lib/session'
+import { logAudit } from '@/lib/audit'
 
 export async function GET(request: NextRequest) {
+  const session = requireSession(request)
+  if (session instanceof NextResponse) return session
+
   try {
     const searchParams = request.nextUrl.searchParams
     const search = searchParams.get('search') || ''
@@ -11,37 +15,28 @@ export async function GET(request: NextRequest) {
 
     const opportunities = await prisma.opportunity.findMany({
       where: {
-        userId: USER_ID,
         AND: [
-          search
-            ? {
-                OR: [
-                  { title: { contains: search, mode: 'insensitive' } },
-                  { description: { contains: search, mode: 'insensitive' } },
-                ],
-              }
-            : {},
+          search ? {
+            OR: [
+              { title: { contains: search, mode: 'insensitive' } },
+              { description: { contains: search, mode: 'insensitive' } },
+            ],
+          } : {},
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           stage ? { stage: stage as any } : {},
         ],
       },
-      include: {
-        company: true,
-        primaryContact: true,
-      },
+      include: { company: true, primaryContact: true },
       orderBy: { expectedCloseDate: 'asc' },
     })
 
-    return NextResponse.json(
-      opportunities.map((opp) => ({
-        ...opp,
-        estimatedValue: opp.estimatedValue ? Number(opp.estimatedValue) : null,
-        weightedValue:
-          opp.estimatedValue && opp.probabilityPercent
-            ? Math.round(Number(opp.estimatedValue) * (opp.probabilityPercent / 100))
-            : 0,
-      }))
-    )
+    return NextResponse.json(opportunities.map((opp) => ({
+      ...opp,
+      estimatedValue: opp.estimatedValue ? Number(opp.estimatedValue) : null,
+      weightedValue: opp.estimatedValue && opp.probabilityPercent
+        ? Math.round(Number(opp.estimatedValue) * (opp.probabilityPercent / 100))
+        : 0,
+    })))
   } catch (error) {
     console.error('[OPPORTUNITIES_GET_ERROR]', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
@@ -49,12 +44,14 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const session = requireSession(request)
+  if (session instanceof NextResponse) return session
+
   try {
     const body = await request.json()
-
     const opportunity = await prisma.opportunity.create({
       data: {
-        userId: USER_ID,
+        userId: session.userId,
         companyId: body.companyId || null,
         primaryContactId: body.primaryContactId || null,
         title: body.title,
@@ -76,18 +73,13 @@ export async function POST(request: NextRequest) {
         nextAction: body.nextAction || null,
       },
     })
-
-    return NextResponse.json(
-      {
-        ...opportunity,
-        estimatedValue: opportunity.estimatedValue ? Number(opportunity.estimatedValue) : null,
-      },
-      { status: 201 }
-    )
+    await logAudit(session.userId, 'CREATE', 'Opportunity', opportunity.id, opportunity.title)
+    return NextResponse.json({
+      ...opportunity,
+      estimatedValue: opportunity.estimatedValue ? Number(opportunity.estimatedValue) : null,
+    }, { status: 201 })
   } catch (error) {
     console.error('[OPPORTUNITIES_POST_ERROR]', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
-
-import { Decimal } from '@prisma/client/runtime/library'

@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-
-const USER_ID = 'user_1'
+import { requireSession } from '@/lib/session'
+import { logAudit } from '@/lib/audit'
 
 export async function GET(request: NextRequest) {
+  const session = requireSession(request)
+  if (session instanceof NextResponse) return session
+
   try {
     const searchParams = request.nextUrl.searchParams
     const contactId = searchParams.get('contactId') || ''
@@ -13,21 +16,15 @@ export async function GET(request: NextRequest) {
 
     const activities = await prisma.activity.findMany({
       where: {
-        userId: USER_ID,
         ...(contactId ? { contactId } : {}),
         ...(opportunityId ? { opportunityId } : {}),
         ...(companyId ? { companyId } : {}),
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         ...(type ? { type: type as any } : {}),
       },
-      include: {
-        contact: true,
-        opportunity: true,
-        company: true,
-      },
+      include: { contact: true, opportunity: true, company: true },
       orderBy: { happenedAt: 'desc' },
     })
-
     return NextResponse.json(activities)
   } catch (error) {
     console.error('[ACTIVITIES_GET_ERROR]', error)
@@ -36,12 +33,14 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const session = requireSession(request)
+  if (session instanceof NextResponse) return session
+
   try {
     const body = await request.json()
-
     const activity = await prisma.activity.create({
       data: {
-        userId: USER_ID,
+        userId: session.userId,
         type: body.type,
         subject: body.subject,
         summary: body.summary || null,
@@ -53,7 +52,7 @@ export async function POST(request: NextRequest) {
         nextStep: body.nextStep || null,
       },
     })
-
+    await logAudit(session.userId, 'CREATE', 'Activity', activity.id, activity.subject)
     return NextResponse.json(activity, { status: 201 })
   } catch (error) {
     console.error('[ACTIVITIES_POST_ERROR]', error)

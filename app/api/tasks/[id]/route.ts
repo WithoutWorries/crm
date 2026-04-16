@@ -1,23 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { requireSession } from '@/lib/session'
 
-const USER_ID = 'user_1'
+export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+  const session = requireSession(request)
+  if (session instanceof NextResponse) return session
 
-export async function GET(_request: NextRequest, { params }: { params: { id: string } }) {
   try {
     const task = await prisma.task.findUnique({
       where: { id: params.id },
-      include: {
-        contact: true,
-        opportunity: true,
-        company: true,
-      },
+      include: { contact: true, opportunity: true, company: true },
     })
-
-    if (!task || task.userId !== USER_ID) {
-      return NextResponse.json({ error: 'Not found' }, { status: 404 })
-    }
-
+    if (!task) return NextResponse.json({ error: 'Not found' }, { status: 404 })
     return NextResponse.json(task)
   } catch (error) {
     console.error('[TASK_GET_ERROR]', error)
@@ -26,17 +20,14 @@ export async function GET(_request: NextRequest, { params }: { params: { id: str
 }
 
 export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
-  try {
-    const task = await prisma.task.findUnique({
-      where: { id: params.id },
-    })
+  const session = requireSession(request)
+  if (session instanceof NextResponse) return session
 
-    if (!task || task.userId !== USER_ID) {
-      return NextResponse.json({ error: 'Not found' }, { status: 404 })
-    }
+  try {
+    const task = await prisma.task.findUnique({ where: { id: params.id } })
+    if (!task) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
     const body = await request.json()
-
     const updated = await prisma.task.update({
       where: { id: params.id },
       data: {
@@ -51,7 +42,6 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
         companyId: body.companyId !== undefined ? body.companyId : task.companyId,
       },
     })
-
     return NextResponse.json(updated)
   } catch (error) {
     console.error('[TASK_PUT_ERROR]', error)
@@ -59,20 +49,14 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
   }
 }
 
-export async function DELETE(_request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+  const session = requireSession(request)
+  if (session instanceof NextResponse) return session
+
   try {
-    const task = await prisma.task.findUnique({
-      where: { id: params.id },
-    })
-
-    if (!task || task.userId !== USER_ID) {
-      return NextResponse.json({ error: 'Not found' }, { status: 404 })
-    }
-
-    await prisma.task.delete({
-      where: { id: params.id },
-    })
-
+    const task = await prisma.task.findUnique({ where: { id: params.id } })
+    if (!task) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+    await prisma.task.delete({ where: { id: params.id } })
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error('[TASK_DELETE_ERROR]', error)

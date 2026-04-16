@@ -1,10 +1,18 @@
 import { PrismaClient } from '@prisma/client'
 import { Decimal } from '@prisma/client/runtime/library'
+import crypto from 'crypto'
+
+function hashPassword(password: string): string {
+  const salt = crypto.randomBytes(16).toString('hex')
+  const hash = crypto.pbkdf2Sync(password, salt, 100_000, 64, 'sha512').toString('hex')
+  return `${salt}:${hash}`
+}
 
 const prisma = new PrismaClient()
 
 async function main() {
   // Clear existing data
+  await prisma.auditLog.deleteMany({})
   await prisma.opportunityTag.deleteMany({})
   await prisma.contactTag.deleteMany({})
   await prisma.companyTag.deleteMany({})
@@ -18,12 +26,17 @@ async function main() {
   await prisma.company.deleteMany({})
   await prisma.user.deleteMany({})
 
-  // Create user
+  const adminEmail = process.env.ADMIN_EMAIL || 'fraser@solocrm.local'
+  const adminPassword = process.env.ADMIN_PASSWORD || process.env.AUTH_PASSWORD || 'changeme123'
+
+  // Create admin user
   const user = await prisma.user.create({
     data: {
-      id: 'user_1',
-      email: 'consultant@solocrm.com',
+      email: adminEmail,
       name: 'Fraser',
+      passwordHash: hashPassword(adminPassword),
+      role: 'ADMIN',
+      isActive: true,
     },
   })
 

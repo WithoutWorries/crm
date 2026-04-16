@@ -1,25 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { requireSession } from '@/lib/session'
+import { logAudit } from '@/lib/audit'
 
-const USER_ID = 'user_1'
+export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+  const session = requireSession(request)
+  if (session instanceof NextResponse) return session
 
-export async function GET(_request: NextRequest, { params }: { params: { id: string } }) {
   try {
     const contact = await prisma.contact.findUnique({
       where: { id: params.id },
-      include: {
-        company: true,
-        opportunities: true,
-        activities: true,
-        tasks: true,
-        notesList: true,
-      },
+      include: { company: true, opportunities: true, activities: true, tasks: true, notesList: true },
     })
-
-    if (!contact || contact.userId !== USER_ID) {
-      return NextResponse.json({ error: 'Not found' }, { status: 404 })
-    }
-
+    if (!contact) return NextResponse.json({ error: 'Not found' }, { status: 404 })
     return NextResponse.json(contact)
   } catch (error) {
     console.error('[CONTACT_GET_ERROR]', error)
@@ -28,17 +21,14 @@ export async function GET(_request: NextRequest, { params }: { params: { id: str
 }
 
 export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
-  try {
-    const contact = await prisma.contact.findUnique({
-      where: { id: params.id },
-    })
+  const session = requireSession(request)
+  if (session instanceof NextResponse) return session
 
-    if (!contact || contact.userId !== USER_ID) {
-      return NextResponse.json({ error: 'Not found' }, { status: 404 })
-    }
+  try {
+    const contact = await prisma.contact.findUnique({ where: { id: params.id } })
+    if (!contact) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
     const body = await request.json()
-
     const updated = await prisma.contact.update({
       where: { id: params.id },
       data: {
@@ -56,12 +46,10 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
         technicalFocus: body.technicalFocus !== undefined ? body.technicalFocus : contact.technicalFocus,
         notes: body.notes !== undefined ? body.notes : contact.notes,
         lastContactDate: body.lastContactDate ? new Date(body.lastContactDate) : contact.lastContactDate,
-        nextFollowUpDate: body.nextFollowUpDate
-          ? new Date(body.nextFollowUpDate)
-          : contact.nextFollowUpDate,
+        nextFollowUpDate: body.nextFollowUpDate ? new Date(body.nextFollowUpDate) : contact.nextFollowUpDate,
       },
     })
-
+    await logAudit(session.userId, 'UPDATE', 'Contact', updated.id, updated.fullName)
     return NextResponse.json(updated)
   } catch (error) {
     console.error('[CONTACT_PUT_ERROR]', error)
@@ -69,20 +57,15 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
   }
 }
 
-export async function DELETE(_request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+  const session = requireSession(request)
+  if (session instanceof NextResponse) return session
+
   try {
-    const contact = await prisma.contact.findUnique({
-      where: { id: params.id },
-    })
-
-    if (!contact || contact.userId !== USER_ID) {
-      return NextResponse.json({ error: 'Not found' }, { status: 404 })
-    }
-
-    await prisma.contact.delete({
-      where: { id: params.id },
-    })
-
+    const contact = await prisma.contact.findUnique({ where: { id: params.id } })
+    if (!contact) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+    await logAudit(session.userId, 'DELETE', 'Contact', contact.id, contact.fullName)
+    await prisma.contact.delete({ where: { id: params.id } })
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error('[CONTACT_DELETE_ERROR]', error)

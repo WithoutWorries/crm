@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { requireSession } from '@/lib/session'
 
 export async function GET(request: NextRequest) {
+  const session = requireSession(request)
+  if (session instanceof NextResponse) return session
+
   try {
     const { searchParams } = new URL(request.url)
     const contactId = searchParams.get('contactId')
@@ -14,9 +18,9 @@ export async function GET(request: NextRequest) {
         ...(companyId ? { companyId } : {}),
         ...(opportunityId ? { opportunityId } : {}),
       },
+      include: { user: { select: { id: true, name: true } } },
       orderBy: { createdAt: 'desc' },
     })
-
     return NextResponse.json(notes)
   } catch (error) {
     console.error('Error fetching notes:', error)
@@ -25,6 +29,9 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const session = requireSession(request)
+  if (session instanceof NextResponse) return session
+
   try {
     const body = await request.json()
     const { content, contactId, companyId, opportunityId } = body
@@ -33,24 +40,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Content is required' }, { status: 400 })
     }
 
-    // Use a fixed system userId — will become dynamic when multi-user is added
-    let userId: string
-    const firstUser = await prisma.user.findFirst()
-    if (!firstUser) {
-      return NextResponse.json({ error: 'No user found' }, { status: 500 })
-    }
-    userId = firstUser.id
-
     const note = await prisma.note.create({
       data: {
         content: content.trim(),
-        userId,
+        userId: session.userId,
         ...(contactId ? { contactId } : {}),
         ...(companyId ? { companyId } : {}),
         ...(opportunityId ? { opportunityId } : {}),
       },
+      include: { user: { select: { id: true, name: true } } },
     })
-
     return NextResponse.json(note, { status: 201 })
   } catch (error) {
     console.error('Error creating note:', error)

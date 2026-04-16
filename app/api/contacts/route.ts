@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-
-const USER_ID = 'user_1'
+import { requireSession } from '@/lib/session'
+import { logAudit } from '@/lib/audit'
 
 export async function GET(request: NextRequest) {
+  const session = requireSession(request)
+  if (session instanceof NextResponse) return session
+
   try {
     const searchParams = request.nextUrl.searchParams
     const search = searchParams.get('search') || ''
@@ -12,25 +15,20 @@ export async function GET(request: NextRequest) {
 
     const contacts = await prisma.contact.findMany({
       where: {
-        userId: USER_ID,
         AND: [
-          search
-            ? {
-                OR: [
-                  { fullName: { contains: search, mode: 'insensitive' } },
-                  { email: { contains: search, mode: 'insensitive' } },
-                  { jobTitle: { contains: search, mode: 'insensitive' } },
-                ],
-              }
-            : {},
+          search ? {
+            OR: [
+              { fullName: { contains: search, mode: 'insensitive' } },
+              { email: { contains: search, mode: 'insensitive' } },
+              { jobTitle: { contains: search, mode: 'insensitive' } },
+            ],
+          } : {},
           companyId ? { companyId } : {},
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           relationshipType ? { relationshipType: relationshipType as any } : {},
         ],
       },
-      include: {
-        company: true,
-      },
+      include: { company: true },
       orderBy: { fullName: 'asc' },
     })
 
@@ -42,12 +40,14 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const session = requireSession(request)
+  if (session instanceof NextResponse) return session
+
   try {
     const body = await request.json()
-
     const contact = await prisma.contact.create({
       data: {
-        userId: USER_ID,
+        userId: session.userId,
         companyId: body.companyId || null,
         firstName: body.firstName,
         lastName: body.lastName || null,
@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
         nextFollowUpDate: body.nextFollowUpDate ? new Date(body.nextFollowUpDate) : null,
       },
     })
-
+    await logAudit(session.userId, 'CREATE', 'Contact', contact.id, contact.fullName)
     return NextResponse.json(contact, { status: 201 })
   } catch (error) {
     console.error('[CONTACTS_POST_ERROR]', error)

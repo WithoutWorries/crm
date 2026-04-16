@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 
 export default function LoginPage() {
+  const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -18,14 +19,14 @@ export default function LoginPage() {
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password }),
+        body: JSON.stringify({ email, password }),
       })
 
       if (res.ok) {
         router.push('/dashboard')
         router.refresh()
       } else {
-        setError('Incorrect password. Please try again.')
+        setError('Invalid email or password.')
       }
     } catch {
       setError('Something went wrong. Please try again.')
@@ -96,13 +97,13 @@ export default function LoginPage() {
               color: '#5c85a0',
               marginBottom: '0.5rem',
             }}>
-              Password
+              Email
             </label>
             <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Enter your password"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="your@email.com"
               required
               autoFocus
               style={{
@@ -116,6 +117,43 @@ export default function LoginPage() {
                 outline: 'none',
                 transition: 'border-color 0.2s',
                 fontFamily: "'DM Sans', sans-serif",
+                boxSizing: 'border-box',
+              }}
+              onFocus={(e) => { if (!error) e.target.style.borderColor = '#00d4e8' }}
+              onBlur={(e) => { if (!error) e.target.style.borderColor = '#1c3550' }}
+            />
+          </div>
+
+          <div style={{ marginBottom: '1.25rem' }}>
+            <label style={{
+              display: 'block',
+              fontSize: '0.78rem',
+              fontFamily: 'DM Mono, monospace',
+              letterSpacing: '0.1em',
+              textTransform: 'uppercase',
+              color: '#5c85a0',
+              marginBottom: '0.5rem',
+            }}>
+              Password
+            </label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Enter your password"
+              required
+              style={{
+                width: '100%',
+                padding: '0.75rem 1rem',
+                background: '#09141f',
+                border: `1px solid ${error ? '#ff3d2e' : '#1c3550'}`,
+                borderRadius: '8px',
+                color: '#d0e8f8',
+                fontSize: '0.95rem',
+                outline: 'none',
+                transition: 'border-color 0.2s',
+                fontFamily: "'DM Sans', sans-serif",
+                boxSizing: 'border-box',
               }}
               onFocus={(e) => { if (!error) e.target.style.borderColor = '#00d4e8' }}
               onBlur={(e) => { if (!error) e.target.style.borderColor = '#1c3550' }}
@@ -138,7 +176,7 @@ export default function LoginPage() {
 
           <button
             type="submit"
-            disabled={loading || !password}
+            disabled={loading || !email || !password}
             style={{
               width: '100%',
               padding: '0.8rem',

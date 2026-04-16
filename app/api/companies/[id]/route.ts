@@ -1,25 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { requireSession } from '@/lib/session'
+import { logAudit } from '@/lib/audit'
 
-const USER_ID = 'user_1'
+export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+  const session = requireSession(request)
+  if (session instanceof NextResponse) return session
 
-export async function GET(_request: NextRequest, { params }: { params: { id: string } }) {
   try {
     const company = await prisma.company.findUnique({
       where: { id: params.id },
       include: {
         contacts: true,
         opportunities: true,
-        _count: {
-          select: { contacts: true, opportunities: true, tags: true },
-        },
+        _count: { select: { contacts: true, opportunities: true, tags: true } },
       },
     })
-
-    if (!company || company.userId !== USER_ID) {
-      return NextResponse.json({ error: 'Not found' }, { status: 404 })
-    }
-
+    if (!company) return NextResponse.json({ error: 'Not found' }, { status: 404 })
     return NextResponse.json(company)
   } catch (error) {
     console.error('[COMPANY_GET_ERROR]', error)
@@ -28,17 +25,14 @@ export async function GET(_request: NextRequest, { params }: { params: { id: str
 }
 
 export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
-  try {
-    const company = await prisma.company.findUnique({
-      where: { id: params.id },
-    })
+  const session = requireSession(request)
+  if (session instanceof NextResponse) return session
 
-    if (!company || company.userId !== USER_ID) {
-      return NextResponse.json({ error: 'Not found' }, { status: 404 })
-    }
+  try {
+    const company = await prisma.company.findUnique({ where: { id: params.id } })
+    if (!company) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
     const body = await request.json()
-
     const updated = await prisma.company.update({
       where: { id: params.id },
       data: {
@@ -48,14 +42,11 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
         city: body.city !== undefined ? body.city : company.city,
         industry: body.industry !== undefined ? body.industry : company.industry,
         companyType: body.companyType !== undefined ? body.companyType : company.companyType,
-        regulatoryEnvironment:
-          body.regulatoryEnvironment !== undefined
-            ? body.regulatoryEnvironment
-            : company.regulatoryEnvironment,
+        regulatoryEnvironment: body.regulatoryEnvironment !== undefined ? body.regulatoryEnvironment : company.regulatoryEnvironment,
         notes: body.notes !== undefined ? body.notes : company.notes,
       },
     })
-
+    await logAudit(session.userId, 'UPDATE', 'Company', updated.id, updated.name)
     return NextResponse.json(updated)
   } catch (error) {
     console.error('[COMPANY_PUT_ERROR]', error)
@@ -63,20 +54,15 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
   }
 }
 
-export async function DELETE(_request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+  const session = requireSession(request)
+  if (session instanceof NextResponse) return session
+
   try {
-    const company = await prisma.company.findUnique({
-      where: { id: params.id },
-    })
-
-    if (!company || company.userId !== USER_ID) {
-      return NextResponse.json({ error: 'Not found' }, { status: 404 })
-    }
-
-    await prisma.company.delete({
-      where: { id: params.id },
-    })
-
+    const company = await prisma.company.findUnique({ where: { id: params.id } })
+    if (!company) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+    await logAudit(session.userId, 'DELETE', 'Company', company.id, company.name)
+    await prisma.company.delete({ where: { id: params.id } })
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error('[COMPANY_DELETE_ERROR]', error)
