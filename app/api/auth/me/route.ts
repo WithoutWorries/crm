@@ -1,10 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { getSessionFromRequest } from '@/lib/session'
+import { requireSession } from '@/lib/session'
 
-export async function GET(request: NextRequest) {
-  const session = getSessionFromRequest(request)
-  if (!session) return NextResponse.json({ error: 'Unauthenticated' }, { status: 401 })
+export async function GET() {
+  const session = requireSession()
+  if (session instanceof NextResponse) return session
 
   const user = await prisma.user.findUnique({
     where: { id: session.userId },

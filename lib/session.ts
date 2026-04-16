@@ -1,10 +1,10 @@
 /**
- * Session helpers for Node.js API routes.
+ * Session helpers for Next.js API routes (Node.js runtime).
  * Cookie format: ${userId}|${role}|${hmac_sha256_hex}
- * The HMAC covers `${userId}|${role}` using SESSION_SECRET.
  */
 import crypto from 'crypto'
-import { NextRequest, NextResponse } from 'next/server'
+import { cookies } from 'next/headers'
+import { NextResponse } from 'next/server'
 
 export const COOKIE_NAME = 'solo-crm-session'
 
@@ -24,7 +24,10 @@ export function verifySessionToken(token: string): { userId: string; role: strin
   const parts = token.split('|')
   if (parts.length !== 3) return null
   const [userId, role, sig] = parts
-  const expected = crypto.createHmac('sha256', getSecret()).update(`${userId}|${role}`).digest('hex')
+  const expected = crypto
+    .createHmac('sha256', getSecret())
+    .update(`${userId}|${role}`)
+    .digest('hex')
   try {
     if (!crypto.timingSafeEqual(Buffer.from(sig, 'hex'), Buffer.from(expected, 'hex'))) return null
   } catch {
@@ -33,29 +36,22 @@ export function verifySessionToken(token: string): { userId: string; role: strin
   return { userId, role }
 }
 
-function parseCookies(header: string): Record<string, string> {
-  return Object.fromEntries(
-    header.split(';').map((c) => {
-      const idx = c.indexOf('=')
-      if (idx === -1) return ['', '']
-      return [c.slice(0, idx).trim(), c.slice(idx + 1).trim()]
-    })
-  )
-}
-
-export function getSessionFromRequest(request: Request): { userId: string; role: string } | null {
-  const cookieHeader = request.headers.get('cookie') || ''
-  const cookies = parseCookies(cookieHeader)
-  const token = cookies[COOKIE_NAME]
+/**
+ * Read the session from the incoming request using Next.js cookies() API.
+ * Use this in all API route handlers.
+ */
+export function getSession(): { userId: string; role: string } | null {
+  const token = cookies().get(COOKIE_NAME)?.value
   if (!token) return null
   return verifySessionToken(token)
 }
 
-/** For use in API route handlers: returns session or a ready-made 401 NextResponse */
-export function requireSession(
-  request: NextRequest
-): { userId: string; role: string } | NextResponse {
-  const session = getSessionFromRequest(request)
+/**
+ * Returns session or a ready-made 401 NextResponse.
+ * Pattern: const session = requireSession(); if (session instanceof NextResponse) return session;
+ */
+export function requireSession(): { userId: string; role: string } | NextResponse {
+  const session = getSession()
   if (!session) return NextResponse.json({ error: 'Unauthenticated' }, { status: 401 })
   return session
 }

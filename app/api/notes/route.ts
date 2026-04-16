@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { requireSession } from '@/lib/session'
 
 export async function GET(request: NextRequest) {
-  const session = requireSession(request)
+  const session = requireSession()
   if (session instanceof NextResponse) return session
 
   try {
@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const session = requireSession(request)
+  const session = requireSession()
   if (session instanceof NextResponse) return session
 
   try {

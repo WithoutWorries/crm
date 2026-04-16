@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { requireSession } from '@/lib/session'
 
 export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
-  const session = requireSession(request)
+  const session = requireSession()
   if (session instanceof NextResponse) return session
 
   try {
@@ -20,7 +20,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 }
 
 export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
-  const session = requireSession(request)
+  const session = requireSession()
   if (session instanceof NextResponse) return session
 
   try {
@@ -50,7 +50,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
 }
 
 export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
-  const session = requireSession(request)
+  const session = requireSession()
   if (session instanceof NextResponse) return session
 
   try {

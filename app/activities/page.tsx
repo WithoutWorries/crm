@@ -28,8 +28,9 @@ export default function ActivitiesPage() {
   const fetchActivities = async () => {
     try {
       const res = await fetch('/api/activities')
+      if (!res.ok) return
       const data = await res.json()
-      setActivities(data)
+      if (Array.isArray(data)) setActivities(data)
     } catch (error) {
       console.error('Error fetching activities:', error)
     } finally {

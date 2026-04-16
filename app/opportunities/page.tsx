@@ -47,8 +47,9 @@ export default function OpportunitiesPage() {
       if (stageFilter) params.append('stage', stageFilter)
 
       const res = await fetch(`/api/opportunities?${params.toString()}`)
+      if (!res.ok) return
       const data = await res.json()
-      setOpportunities(data)
+      if (Array.isArray(data)) setOpportunities(data)
     } catch (error) {
       console.error('Error fetching opportunities:', error)
     } finally {

@@ -40,8 +40,9 @@ export default function CompaniesPage() {
   const fetchCompanies = async () => {
     try {
       const res = await fetch(`/api/companies?search=${encodeURIComponent(search)}`)
+      if (!res.ok) return
       const data = await res.json()
-      setCompanies(data)
+      if (Array.isArray(data)) setCompanies(data)
     } catch (error) {
       console.error('Error fetching companies:', error)
     } finally {

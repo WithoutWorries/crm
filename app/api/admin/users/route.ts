@@ -4,7 +4,7 @@ import { requireSession } from '@/lib/session'
 import { hashPassword } from '@/lib/auth'
 
 export async function GET(request: NextRequest) {
-  const session = requireSession(request)
+  const session = requireSession()
   if (session instanceof NextResponse) return session
   if (session.role !== 'ADMIN') return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const session = requireSession(request)
+  const session = requireSession()
   if (session instanceof NextResponse) return session
   if (session.role !== 'ADMIN') return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 

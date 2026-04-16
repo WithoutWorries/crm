@@ -4,7 +4,7 @@ import { requireSession } from '@/lib/session'
 import { OpportunityStage } from '@prisma/client'
 
 export async function GET(request: NextRequest) {
-  const session = requireSession(request)
+  const session = requireSession()
   if (session instanceof NextResponse) return session
 
   try {

@@ -4,7 +4,7 @@ import { requireSession } from '@/lib/session'
 import { hashPassword } from '@/lib/auth'
 
 export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
-  const session = requireSession(request)
+  const session = requireSession()
   if (session instanceof NextResponse) return session
   if (session.role !== 'ADMIN') return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
@@ -30,7 +30,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
 }
 
 export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
-  const session = requireSession(request)
+  const session = requireSession()
   if (session instanceof NextResponse) return session
   if (session.role !== 'ADMIN') return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   if (params.id === session.userId) return NextResponse.json({ error: 'Cannot delete yourself' }, { status: 400 })

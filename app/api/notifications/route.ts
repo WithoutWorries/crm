@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { requireSession } from '@/lib/session'
 
 export async function GET(request: NextRequest) {
-  const session = requireSession(request)
+  const session = requireSession()
   if (session instanceof NextResponse) return session
 
   const user = await prisma.user.findUnique({
@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   // Mark all as read
-  const session = requireSession(request)
+  const session = requireSession()
   if (session instanceof NextResponse) return session
 
   await prisma.user.update({

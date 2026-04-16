@@ -43,8 +43,9 @@ export default function ContactsPage() {
       if (search) params.append('search', search)
       if (relationshipFilter) params.append('relationshipType', relationshipFilter)
       const res = await fetch(`/api/contacts?${params.toString()}`)
+      if (!res.ok) return
       const data = await res.json()
-      setContacts(data)
+      if (Array.isArray(data)) setContacts(data)
     } catch (error) {
       console.error('Error fetching contacts:', error)
     } finally {
