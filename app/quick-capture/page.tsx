@@ -21,6 +21,7 @@ interface Extracted {
     source: string
     subject: string
     summary: string
+    originalExcerpt: string | null
     opportunityTitle: string | null
     estimatedValue: number | null
     currency: string
@@ -61,7 +62,7 @@ export default function QuickCapturePage() {
     email: null, phone: null, linkedinUrl: null, jobTitle: null,
   })
   const [enquiry, setEnquiry] = useState<Extracted['enquiry']>({
-    source: 'OTHER', subject: '', summary: '',
+    source: 'OTHER', subject: '', summary: '', originalExcerpt: null,
     opportunityTitle: null, estimatedValue: null, currency: 'EUR',
     nextAction: null, urgency: 'MEDIUM',
   })
@@ -301,6 +302,14 @@ export default function QuickCapturePage() {
                 <label className={labelCls}>Summary</label>
                 <textarea value={enquiry.summary} onChange={e => setEnquiry({ ...enquiry, summary: e.target.value })} rows={3} className={inputCls} />
               </div>
+              {enquiry.originalExcerpt && (
+                <div>
+                  <label className={labelCls}>Original language excerpt</label>
+                  <div className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-fmea-border bg-slate-50 dark:bg-fmea-bg text-slate-500 dark:text-fmea-dim text-sm italic leading-relaxed">
+                    {enquiry.originalExcerpt}
+                  </div>
+                </div>
+              )}
               <div>
                 <label className={labelCls}>Next action</label>
                 <input value={enquiry.nextAction ?? ''} onChange={e => setEnquiry({ ...enquiry, nextAction: e.target.value || null })} className={inputCls} placeholder="e.g. Send capability statement" />

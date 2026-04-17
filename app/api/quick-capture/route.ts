@@ -21,6 +21,7 @@ Return this exact shape (use null for anything not found or unclear):
     "source": "EMAIL" | "CALL" | "LINKEDIN_MESSAGE" | "OTHER",
     "subject": string,
     "summary": string,
+    "originalExcerpt": string | null,
     "opportunityTitle": string | null,
     "estimatedValue": number | null,
     "currency": "EUR" | "GBP" | "USD",
@@ -31,10 +32,10 @@ Return this exact shape (use null for anything not found or unclear):
 
 Rules:
 - source: infer from context clues ("called me", "email", "LinkedIn", etc.). Default to OTHER.
-- subject: a short action-oriented title for the activity log, e.g. "Introductory call — Siemens"
-- summary: 2–3 sentences capturing what they want and any key context. Always write in English. If the source text is not in English, translate the summary into English, then append a blank line, "--- Original ---", and the key original-language passage (role description + requirements, trimmed to ~100 words).
-- opportunityTitle: always in English, even if source is another language
-- opportunityTitle: only set if this sounds like a real project/contract enquiry, e.g. "FMEA consultancy — Siemens Energy"
+- subject: a short action-oriented title for the activity log, always in English.
+- summary: 2–3 sentences in English capturing what they want and any key context. Always write in English regardless of the source language.
+- originalExcerpt: if the source text is NOT in English, set this to a trimmed excerpt (~80 words) of the most relevant original-language passage (e.g. the role description or key requirements). If the source is already in English, set to null.
+- opportunityTitle: always in English. Only set if this sounds like a real project/contract enquiry, e.g. "FMEA consultancy — Siemens Energy". Otherwise null.
 - estimatedValue: only if a budget, rate, or contract value is mentioned. Use the numeric value.
 - currency: default EUR if not specified
 - urgency: infer from language ("urgent", "ASAP" = HIGH; "when you have time" = LOW; default MEDIUM)`
@@ -66,7 +67,7 @@ export async function POST(request: NextRequest) {
       },
       body: JSON.stringify({
         model: 'claude-haiku-4-5-20251001',
-        max_tokens: 1024,
+        max_tokens: 2048,
         system: SYSTEM_PROMPT,
         messages: [{ role: 'user', content: text.trim() }],
       }),
