@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Shield, Plus, Pencil, Ban, Key, Users, Check, X } from 'lucide-react'
+import { Shield, Plus, Pencil, Ban, Key, Users, Check, X, Download } from 'lucide-react'
 
 interface User {
   id: string
@@ -31,6 +31,28 @@ export default function AdminUsersPage() {
   const [newPassword, setNewPassword] = useState('')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [downloading, setDownloading] = useState(false)
+
+  const handleDownloadBackup = async () => {
+    setDownloading(true)
+    try {
+      const res = await fetch('/api/admin/backup')
+      if (!res.ok) throw new Error('Backup failed')
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `solocrm-backup-${new Date().toISOString().slice(0, 10)}.json`
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      URL.revokeObjectURL(url)
+    } catch {
+      alert('Backup download failed. Please try again.')
+    } finally {
+      setDownloading(false)
+    }
+  }
 
   useEffect(() => { fetchUsers() }, [])
 
@@ -116,13 +138,24 @@ export default function AdminUsersPage() {
             <p className="text-sm text-slate-500 dark:text-fmea-dim">Manage access to SoloCRM</p>
           </div>
         </div>
-        <button
-          onClick={() => { setShowCreate(true); setEditId(null); setForm(BLANK); setError('') }}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-violet-600 text-white text-sm font-medium hover:bg-violet-700 transition-colors"
-        >
-          <Plus className="h-4 w-4" />
-          Add User
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleDownloadBackup}
+            disabled={downloading}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-100 dark:bg-fmea-bg3 text-slate-700 dark:text-fmea-text text-sm font-medium hover:bg-slate-200 dark:hover:bg-fmea-border transition-colors disabled:opacity-50"
+            title="Download full database backup as JSON"
+          >
+            <Download className="h-4 w-4" />
+            {downloading ? 'Preparing…' : 'Backup'}
+          </button>
+          <button
+            onClick={() => { setShowCreate(true); setEditId(null); setForm(BLANK); setError('') }}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-violet-600 text-white text-sm font-medium hover:bg-violet-700 transition-colors"
+          >
+            <Plus className="h-4 w-4" />
+            Add User
+          </button>
+        </div>
       </div>
 
       {/* Stat strip */}
