@@ -32,7 +32,8 @@ Return this exact shape (use null for anything not found or unclear):
 Rules:
 - source: infer from context clues ("called me", "email", "LinkedIn", etc.). Default to OTHER.
 - subject: a short action-oriented title for the activity log, e.g. "Introductory call — Siemens"
-- summary: 2–3 sentences capturing what they want and any key context
+- summary: 2–3 sentences capturing what they want and any key context. Always write in English. If the source text is not in English, translate the summary into English, then append a blank line, "--- Original ---", and the key original-language passage (role description + requirements, trimmed to ~100 words).
+- opportunityTitle: always in English, even if source is another language
 - opportunityTitle: only set if this sounds like a real project/contract enquiry, e.g. "FMEA consultancy — Siemens Energy"
 - estimatedValue: only if a budget, rate, or contract value is mentioned. Use the numeric value.
 - currency: default EUR if not specified
