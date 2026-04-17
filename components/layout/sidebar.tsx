@@ -13,6 +13,7 @@ import {
   Activity,
   LogOut,
   Shield,
+  Zap,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -58,6 +59,20 @@ export function Sidebar() {
 
       {/* Nav Items */}
       <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
+        {/* Quick Capture — primary action */}
+        <Link
+          href="/quick-capture"
+          className={cn(
+            'flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors text-sm font-semibold mb-3',
+            pathname.startsWith('/quick-capture')
+              ? 'bg-cyan-400 text-fmea-bg'
+              : 'bg-cyan-500/15 text-cyan-400 hover:bg-cyan-500/25 hover:text-cyan-300 border border-cyan-500/30'
+          )}
+        >
+          <Zap className="h-4 w-4" />
+          <span>Quick Capture</span>
+        </Link>
+
         {navItems.map((item) => {
           const Icon = item.icon
           const isActive = pathname.startsWith(item.href)
