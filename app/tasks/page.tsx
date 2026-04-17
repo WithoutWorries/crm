@@ -5,7 +5,7 @@ import { PRIORITY_LABELS, PRIORITY_COLORS } from '@/lib/constants'
 import { Badge } from '@/components/shared/badge'
 import { formatRelativeDate, isOverdue, isDueToday, isDueSoon } from '@/lib/utils'
 import { Task } from '@prisma/client'
-import { Plus, Check, Trash2 } from 'lucide-react'
+import { Plus, Check, Trash2, Pencil } from 'lucide-react'
 import Link from 'next/link'
 import { useCurrentUser } from '@/hooks/use-current-user'
 
@@ -118,6 +118,13 @@ export default function TasksPage() {
             <Check className="h-5 w-5 text-slate-400 dark:text-fmea-dim hover:text-slate-600 dark:hover:text-fmea-text" />
           </button>
         )}
+        <Link
+          href={`/tasks/${task.id}/edit`}
+          className="p-2 hover:bg-slate-100 dark:hover:bg-fmea-bg3 rounded-lg transition-colors"
+          title="Edit task"
+        >
+          <Pencil className="h-4 w-4 text-slate-400 dark:text-fmea-dim hover:text-slate-600 dark:hover:text-fmea-text" />
+        </Link>
         {isAdmin && (confirmDeleteId === task.id ? (
           <div className="flex items-center gap-1">
             <button
