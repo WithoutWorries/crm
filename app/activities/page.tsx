@@ -4,7 +4,8 @@ import { useEffect, useState } from 'react'
 import { ACTIVITY_TYPE_LABELS } from '@/lib/constants'
 import { formatDate } from '@/lib/utils'
 import { Activity } from '@prisma/client'
-import { Mail, Phone, Users, MessageSquare, FileText, BookOpen, Zap, Trash2 } from 'lucide-react'
+import { Mail, Phone, Users, MessageSquare, FileText, BookOpen, Zap, Trash2, Pencil } from 'lucide-react'
+import Link from 'next/link'
 import { useCurrentUser } from '@/hooks/use-current-user'
 
 export default function ActivitiesPage() {
@@ -101,6 +102,13 @@ export default function ActivitiesPage() {
                         <span className="text-xs text-slate-500 dark:text-fmea-dim">
                           {formatDate(activity.happenedAt)}
                         </span>
+                        <Link
+                          href={`/activities/${activity.id}/edit`}
+                          className="p-1.5 hover:bg-slate-100 dark:hover:bg-fmea-bg3 rounded-lg transition-colors"
+                          title="Edit activity"
+                        >
+                          <Pencil className="h-4 w-4 text-slate-300 dark:text-slate-600 hover:text-slate-600 dark:hover:text-fmea-text" />
+                        </Link>
                         {isAdmin && (confirmDeleteId === activity.id ? (
                           <div className="flex items-center gap-1">
                             <button

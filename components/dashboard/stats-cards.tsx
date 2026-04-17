@@ -5,7 +5,7 @@ import { formatCurrency } from '@/lib/utils'
 
 interface StatsCardsProps {
   openOpportunities: number
-  weightedPipeline: number
+  pipelineValue: number
   overdueTasks: number
   followUpsNeeded: number
   totalContacts: number
@@ -14,7 +14,7 @@ interface StatsCardsProps {
 
 export function StatsCards({
   openOpportunities,
-  weightedPipeline,
+  pipelineValue,
   overdueTasks,
   followUpsNeeded,
   totalContacts,
@@ -31,8 +31,8 @@ export function StatsCards({
     },
     {
       icon: TrendingUp,
-      label: 'Weighted Pipeline',
-      value: formatCurrency(weightedPipeline, 'GBP'),
+      label: 'Pipeline Value',
+      value: formatCurrency(pipelineValue, 'EUR'),
       bg: 'bg-emerald-600',
       iconBg: 'bg-emerald-500',
       urgent: false,

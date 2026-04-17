@@ -119,9 +119,9 @@ export default function TasksPage() {
           </button>
         )}
         <Link
-          href={`/tasks/${task.id}/edit`}
+          href={['COMPLETED', 'CANCELLED'].includes(task.status) ? `/tasks/${task.id}` : `/tasks/${task.id}/edit`}
           className="p-2 hover:bg-slate-100 dark:hover:bg-fmea-bg3 rounded-lg transition-colors"
-          title="Edit task"
+          title={['COMPLETED', 'CANCELLED'].includes(task.status) ? 'View task' : 'Edit task'}
         >
           <Pencil className="h-4 w-4 text-slate-400 dark:text-fmea-dim hover:text-slate-600 dark:hover:text-fmea-text" />
         </Link>

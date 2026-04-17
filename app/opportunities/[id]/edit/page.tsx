@@ -6,7 +6,7 @@ import {
   STAGE_LABELS, URGENCY_LABELS, INDUSTRY_LABELS,
   PROJECT_PHASE_LABELS, SERVICE_TYPE_LABELS, REGULATORY_FRAMEWORK_LABELS,
 } from '@/lib/constants'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, Calculator } from 'lucide-react'
 
 interface Company { id: string; name: string }
 interface Contact { id: string; fullName: string }
@@ -122,6 +122,25 @@ export default function EditOpportunityPage() {
   const inputClass = "w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-fmea-border bg-white dark:bg-fmea-bg3 text-slate-900 dark:text-fmea-text focus:outline-none focus:ring-2 focus:ring-indigo-500"
   const labelClass = "block text-sm font-medium text-slate-700 dark:text-fmea-dim mb-1"
 
+  // Contract value calculator state
+  const [calcOpen, setCalcOpen] = useState(false)
+  const [calc, setCalc] = useState({ rate: '', hoursPerWeek: '', durationWeeks: '', durationMonths: '', mode: 'months' as 'weeks' | 'months' })
+
+  const calcTotal = (() => {
+    const rate = parseFloat(calc.rate)
+    const hpw = parseFloat(calc.hoursPerWeek)
+    if (!rate || !hpw) return null
+    if (calc.mode === 'months') {
+      const months = parseFloat(calc.durationMonths)
+      if (!months) return null
+      return Math.round(rate * hpw * (months * 52 / 12))
+    } else {
+      const weeks = parseFloat(calc.durationWeeks)
+      if (!weeks) return null
+      return Math.round(rate * hpw * weeks)
+    }
+  })()
+
   if (loading) return <div className="text-center py-12">Loading...</div>
 
   return (
@@ -191,6 +210,63 @@ export default function EditOpportunityPage() {
             <div>
               <label className={labelClass}>Estimated Value</label>
               <input type="number" value={formData.estimatedValue} onChange={(e) => setFormData({ ...formData, estimatedValue: e.target.value })} className={inputClass} />
+              <button type="button" onClick={() => setCalcOpen((o) => !o)}
+                className="mt-1.5 flex items-center gap-1 text-xs text-indigo-600 dark:text-fmea-accent hover:underline">
+                <Calculator className="h-3 w-3" />
+                {calcOpen ? 'Hide calculator' : 'Calculate from rate × hours'}
+              </button>
+              {calcOpen && (
+                <div className="mt-3 p-4 rounded-lg bg-slate-50 dark:bg-fmea-bg3 border border-slate-200 dark:border-fmea-border space-y-3">
+                  <p className="text-xs font-medium text-slate-600 dark:text-fmea-dim">Contract Value Calculator</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-xs text-slate-500 dark:text-fmea-dim mb-1">Hourly rate</label>
+                      <input type="number" placeholder="e.g. 120" value={calc.rate}
+                        onChange={(e) => setCalc({ ...calc, rate: e.target.value })}
+                        className="w-full px-2 py-1.5 rounded-lg border border-slate-300 dark:border-fmea-border bg-white dark:bg-fmea-bg2 text-sm dark:text-fmea-text focus:outline-none focus:ring-1 focus:ring-indigo-400" />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-slate-500 dark:text-fmea-dim mb-1">Hours / week</label>
+                      <input type="number" placeholder="e.g. 40" value={calc.hoursPerWeek}
+                        onChange={(e) => setCalc({ ...calc, hoursPerWeek: e.target.value })}
+                        className="w-full px-2 py-1.5 rounded-lg border border-slate-300 dark:border-fmea-border bg-white dark:bg-fmea-bg2 text-sm dark:text-fmea-text focus:outline-none focus:ring-1 focus:ring-indigo-400" />
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button type="button"
+                      onClick={() => setCalc({ ...calc, mode: 'months' })}
+                      className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${calc.mode === 'months' ? 'bg-indigo-600 dark:bg-fmea-accent text-white dark:text-fmea-bg' : 'bg-slate-200 dark:bg-fmea-bg2 text-slate-600 dark:text-fmea-dim'}`}>
+                      Months
+                    </button>
+                    <button type="button"
+                      onClick={() => setCalc({ ...calc, mode: 'weeks' })}
+                      className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${calc.mode === 'weeks' ? 'bg-indigo-600 dark:bg-fmea-accent text-white dark:text-fmea-bg' : 'bg-slate-200 dark:bg-fmea-bg2 text-slate-600 dark:text-fmea-dim'}`}>
+                      Weeks
+                    </button>
+                    {calc.mode === 'months' ? (
+                      <input type="number" placeholder="Duration (months)" value={calc.durationMonths}
+                        onChange={(e) => setCalc({ ...calc, durationMonths: e.target.value })}
+                        className="flex-1 px-2 py-1.5 rounded-lg border border-slate-300 dark:border-fmea-border bg-white dark:bg-fmea-bg2 text-sm dark:text-fmea-text focus:outline-none focus:ring-1 focus:ring-indigo-400" />
+                    ) : (
+                      <input type="number" placeholder="Duration (weeks)" value={calc.durationWeeks}
+                        onChange={(e) => setCalc({ ...calc, durationWeeks: e.target.value })}
+                        className="flex-1 px-2 py-1.5 rounded-lg border border-slate-300 dark:border-fmea-border bg-white dark:bg-fmea-bg2 text-sm dark:text-fmea-text focus:outline-none focus:ring-1 focus:ring-indigo-400" />
+                    )}
+                  </div>
+                  {calcTotal !== null && (
+                    <div className="flex items-center justify-between pt-1">
+                      <span className="text-sm font-semibold text-slate-900 dark:text-fmea-hi">
+                        Total: {new Intl.NumberFormat('en-EU', { style: 'currency', currency: formData.currency || 'EUR', maximumFractionDigits: 0 }).format(calcTotal)}
+                      </span>
+                      <button type="button"
+                        onClick={() => { setFormData({ ...formData, estimatedValue: String(calcTotal) }); setCalcOpen(false) }}
+                        className="px-3 py-1.5 rounded-lg bg-indigo-600 dark:bg-fmea-accent text-white dark:text-fmea-bg text-xs font-medium hover:bg-indigo-700 dark:hover:opacity-90 transition-colors">
+                        Apply to value
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
             <div>
               <label className={labelClass}>Probability %</label>

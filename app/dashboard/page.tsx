@@ -24,7 +24,7 @@ export default async function DashboardPage() {
     openOpps,
     wonOpps,
     oppsByStage,
-    weightedPipeline,
+    pipelineValue,
     overdueTasks,
     followUpsNeeded,
     totalContacts,
@@ -38,9 +38,9 @@ export default async function DashboardPage() {
       _count: true,
       _sum: { estimatedValue: true },
     }),
-    prisma.opportunity.findMany({
+    prisma.opportunity.aggregate({
       where: { stage: { notIn: ['WON', 'LOST'] } },
-      select: { estimatedValue: true, probabilityPercent: true },
+      _sum: { estimatedValue: true },
     }),
     prisma.task.count({
       where: { status: { notIn: ['COMPLETED', 'CANCELLED'] }, dueDate: { lt: today } },
@@ -59,12 +59,7 @@ export default async function DashboardPage() {
     }),
   ])
 
-  const weightedTotal = weightedPipeline.reduce((sum, opp) => {
-    if (opp.estimatedValue && opp.probabilityPercent) {
-      return sum + Number(opp.estimatedValue) * (opp.probabilityPercent / 100)
-    }
-    return sum
-  }, 0)
+  const pipelineTotal = Math.round(Number(pipelineValue._sum.estimatedValue ?? 0))
 
   const pipelineByStage = oppsByStage.map((item) => ({
     stage: item.stage,
@@ -86,7 +81,7 @@ export default async function DashboardPage() {
 
       <StatsCards
         openOpportunities={openOpps}
-        weightedPipeline={Math.round(weightedTotal)}
+        pipelineValue={pipelineTotal}
         overdueTasks={overdueTasks}
         followUpsNeeded={followUpsNeeded}
         totalContacts={totalContacts}
