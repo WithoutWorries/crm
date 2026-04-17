@@ -80,8 +80,6 @@ export default async function DashboardPage() {
         </p>
       </div>
 
-      {totalContacts === 0 && <WelcomeGuide />}
-
       <StatsCards
         openOpportunities={openOpps}
         pipelineValue={pipelineTotal}
@@ -101,6 +99,8 @@ export default async function DashboardPage() {
       </div>
 
       <UpcomingTasks tasks={upcomingTasks} />
+
+      <WelcomeGuide />
     </div>
   )
 }

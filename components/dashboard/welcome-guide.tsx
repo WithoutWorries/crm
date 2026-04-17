@@ -1,8 +1,7 @@
 'use client'
 
-import { useState } from 'react'
 import Link from 'next/link'
-import { Zap, Users, Kanban, CheckSquare, Activity, X, ArrowRight } from 'lucide-react'
+import { Zap, Users, Kanban, CheckSquare, Activity, ArrowRight } from 'lucide-react'
 
 const steps = [
   {
@@ -63,30 +62,17 @@ const steps = [
 ]
 
 export function WelcomeGuide() {
-  const [dismissed, setDismissed] = useState(false)
-
-  if (dismissed) return null
-
   return (
     <div className="relative bg-white dark:bg-fmea-bg2 rounded-2xl border border-slate-200 dark:border-fmea-border overflow-hidden">
       {/* Header gradient bar */}
       <div className="h-1.5 bg-gradient-to-r from-cyan-400 via-indigo-500 to-violet-500" />
 
       <div className="p-6">
-        <div className="flex items-start justify-between mb-1">
-          <div>
-            <h2 className="text-lg font-bold text-slate-900 dark:text-fmea-hi">Welcome to SoloCRM</h2>
-            <p className="text-sm text-slate-500 dark:text-fmea-dim mt-0.5">
-              Here's how to get started — your CRM is ready to go.
-            </p>
-          </div>
-          <button
-            onClick={() => setDismissed(true)}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-fmea-text hover:bg-slate-100 dark:hover:bg-fmea-bg3 transition-colors"
-            title="Dismiss"
-          >
-            <X className="h-4 w-4" />
-          </button>
+        <div className="mb-1">
+          <h2 className="text-lg font-bold text-slate-900 dark:text-fmea-hi">Quick reference</h2>
+          <p className="text-sm text-slate-500 dark:text-fmea-dim mt-0.5">
+            Jump to any section of the CRM.
+          </p>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 mt-5">
