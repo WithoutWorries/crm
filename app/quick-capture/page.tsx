@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Zap, ArrowLeft, ArrowRight, Check, Loader2, AlertCircle } from 'lucide-react'
+import { Zap, ArrowLeft, ArrowRight, Check, Loader2, AlertCircle, Calculator } from 'lucide-react'
 
 type Step = 'input' | 'review' | 'done'
 
@@ -55,6 +55,24 @@ export default function QuickCapturePage() {
   const [saveError, setSaveError] = useState('')
   const [createOpportunity, setCreateOpportunity] = useState(true)
   const [createdIds, setCreatedIds] = useState<{ contactId?: string; opportunityId?: string }>({})
+
+  // Contract value calculator
+  const [calcOpen, setCalcOpen] = useState(false)
+  const [calc, setCalc] = useState({ rate: '', hoursPerWeek: '', durationWeeks: '', durationMonths: '', mode: 'months' as 'weeks' | 'months' })
+  const calcTotal = (() => {
+    const rate = parseFloat(calc.rate)
+    const hpw = parseFloat(calc.hoursPerWeek)
+    if (!rate || !hpw) return null
+    if (calc.mode === 'months') {
+      const months = parseFloat(calc.durationMonths)
+      if (!months) return null
+      return Math.round(rate * hpw * (months * 52 / 12))
+    } else {
+      const weeks = parseFloat(calc.durationWeeks)
+      if (!weeks) return null
+      return Math.round(rate * hpw * weeks)
+    }
+  })()
 
   // Editable review fields
   const [contact, setContact] = useState<Extracted['contact']>({
@@ -333,6 +351,61 @@ export default function QuickCapturePage() {
                 <div>
                   <label className={labelCls}>Estimated value</label>
                   <input type="number" value={enquiry.estimatedValue ?? ''} onChange={e => setEnquiry({ ...enquiry, estimatedValue: e.target.value ? Number(e.target.value) : null })} className={inputCls} placeholder="0" />
+                  <button type="button" onClick={() => setCalcOpen(o => !o)}
+                    className="mt-1.5 flex items-center gap-1 text-xs text-cyan-600 dark:text-cyan-400 hover:underline">
+                    <Calculator className="h-3 w-3" />
+                    {calcOpen ? 'Hide calculator' : 'Calculate from rate × hours'}
+                  </button>
+                  {calcOpen && (
+                    <div className="mt-3 p-4 rounded-lg bg-slate-50 dark:bg-fmea-bg border border-slate-200 dark:border-fmea-border space-y-3">
+                      <p className="text-xs font-medium text-slate-600 dark:text-fmea-dim">Contract Value Calculator</p>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="block text-xs text-slate-500 dark:text-fmea-dim mb-1">Hourly rate</label>
+                          <input type="number" placeholder="e.g. 120" value={calc.rate}
+                            onChange={e => setCalc({ ...calc, rate: e.target.value })}
+                            className="w-full px-2 py-1.5 rounded-lg border border-slate-300 dark:border-fmea-border bg-white dark:bg-fmea-bg2 text-sm dark:text-fmea-text focus:outline-none focus:ring-1 focus:ring-cyan-400" />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-slate-500 dark:text-fmea-dim mb-1">Hours / week</label>
+                          <input type="number" placeholder="e.g. 40" value={calc.hoursPerWeek}
+                            onChange={e => setCalc({ ...calc, hoursPerWeek: e.target.value })}
+                            className="w-full px-2 py-1.5 rounded-lg border border-slate-300 dark:border-fmea-border bg-white dark:bg-fmea-bg2 text-sm dark:text-fmea-text focus:outline-none focus:ring-1 focus:ring-cyan-400" />
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button type="button" onClick={() => setCalc({ ...calc, mode: 'months' })}
+                          className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${calc.mode === 'months' ? 'bg-cyan-500 text-white' : 'bg-slate-200 dark:bg-fmea-bg2 text-slate-600 dark:text-fmea-dim'}`}>
+                          Months
+                        </button>
+                        <button type="button" onClick={() => setCalc({ ...calc, mode: 'weeks' })}
+                          className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${calc.mode === 'weeks' ? 'bg-cyan-500 text-white' : 'bg-slate-200 dark:bg-fmea-bg2 text-slate-600 dark:text-fmea-dim'}`}>
+                          Weeks
+                        </button>
+                        {calc.mode === 'months' ? (
+                          <input type="number" placeholder="Duration (months)" value={calc.durationMonths}
+                            onChange={e => setCalc({ ...calc, durationMonths: e.target.value })}
+                            className="flex-1 px-2 py-1.5 rounded-lg border border-slate-300 dark:border-fmea-border bg-white dark:bg-fmea-bg2 text-sm dark:text-fmea-text focus:outline-none focus:ring-1 focus:ring-cyan-400" />
+                        ) : (
+                          <input type="number" placeholder="Duration (weeks)" value={calc.durationWeeks}
+                            onChange={e => setCalc({ ...calc, durationWeeks: e.target.value })}
+                            className="flex-1 px-2 py-1.5 rounded-lg border border-slate-300 dark:border-fmea-border bg-white dark:bg-fmea-bg2 text-sm dark:text-fmea-text focus:outline-none focus:ring-1 focus:ring-cyan-400" />
+                        )}
+                      </div>
+                      {calcTotal !== null && (
+                        <div className="flex items-center justify-between pt-1">
+                          <span className="text-sm font-semibold text-slate-900 dark:text-fmea-hi">
+                            Total: {new Intl.NumberFormat('en-EU', { style: 'currency', currency: enquiry.currency || 'EUR', maximumFractionDigits: 0 }).format(calcTotal)}
+                          </span>
+                          <button type="button"
+                            onClick={() => { setEnquiry({ ...enquiry, estimatedValue: calcTotal }); setCalcOpen(false) }}
+                            className="px-3 py-1.5 rounded-lg bg-cyan-500 text-white text-xs font-medium hover:bg-cyan-600 transition-colors">
+                            Apply to value
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
                 <div>
                   <label className={labelCls}>Currency</label>

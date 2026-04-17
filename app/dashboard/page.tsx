@@ -7,6 +7,7 @@ import { StatsCards } from '@/components/dashboard/stats-cards'
 import { PipelineSummary } from '@/components/dashboard/pipeline-summary'
 import { RecentActivity } from '@/components/dashboard/recent-activity'
 import { UpcomingTasks } from '@/components/dashboard/upcoming-tasks'
+import { WelcomeGuide } from '@/components/dashboard/welcome-guide'
 
 export default async function DashboardPage() {
   const token = cookies().get(COOKIE_NAME)?.value
@@ -78,6 +79,8 @@ export default async function DashboardPage() {
           {now.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
         </p>
       </div>
+
+      {totalContacts === 0 && <WelcomeGuide />}
 
       <StatsCards
         openOpportunities={openOpps}
