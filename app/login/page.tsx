@@ -23,14 +23,15 @@ export default function LoginPage() {
       })
 
       if (res.ok) {
+        // Keep loading=true so the button stays in "Signing in…" state
+        // while Next.js navigates — component will unmount on arrival.
         router.push('/dashboard')
-        router.refresh()
       } else {
         setError('Invalid email or password.')
+        setLoading(false)
       }
     } catch {
       setError('Something went wrong. Please try again.')
-    } finally {
       setLoading(false)
     }
   }
@@ -190,10 +191,25 @@ export default function LoginPage() {
               transition: 'all 0.2s',
               fontFamily: "'DM Sans', sans-serif",
               letterSpacing: '0.02em',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '0.5rem',
             }}
           >
+            {loading && (
+              <svg
+                width="16" height="16" viewBox="0 0 16 16"
+                style={{ animation: 'spin 0.8s linear infinite', flexShrink: 0 }}
+              >
+                <circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" strokeWidth="2" strokeOpacity="0.3" />
+                <path d="M8 2a6 6 0 0 1 6 6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+              </svg>
+            )}
             {loading ? 'Signing in…' : 'Sign in'}
           </button>
+
+          <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
         </form>
 
         <p style={{
