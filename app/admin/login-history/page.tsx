@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { Shield, Monitor, Smartphone, Globe, RefreshCw, ChevronLeft, ChevronRight, Clock } from 'lucide-react'
+import { Monitor, Smartphone, Globe, RefreshCw, ChevronLeft, ChevronRight, Clock } from 'lucide-react'
 
 interface LoginRecord {
   id: string
