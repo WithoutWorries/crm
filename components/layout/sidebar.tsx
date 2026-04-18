@@ -14,6 +14,7 @@ import {
   LogOut,
   Shield,
   Zap,
+  Clock,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -103,13 +104,25 @@ export function Sidebar() {
               href="/admin/users"
               className={cn(
                 'flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors text-sm font-medium',
-                pathname.startsWith('/admin')
+                pathname.startsWith('/admin/users')
                   ? 'bg-violet-600 text-white'
                   : 'text-fmea-dim hover:bg-fmea-bg3 hover:text-fmea-text'
               )}
             >
               <Shield className="h-4 w-4" />
               <span>Team Users</span>
+            </Link>
+            <Link
+              href="/admin/login-history"
+              className={cn(
+                'flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors text-sm font-medium',
+                pathname.startsWith('/admin/login-history')
+                  ? 'bg-violet-600 text-white'
+                  : 'text-fmea-dim hover:bg-fmea-bg3 hover:text-fmea-text'
+              )}
+            >
+              <Clock className="h-4 w-4" />
+              <span>Login History</span>
             </Link>
           </>
         )}
