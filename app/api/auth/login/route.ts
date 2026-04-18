@@ -35,18 +35,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 })
     }
 
-    // Record the login event — best-effort, never blocks login
-    try {
-      const ip =
-        request.headers.get('x-forwarded-for')?.split(',')[0].trim() ??
-        request.headers.get('x-real-ip') ??
-        null
-      const ua = request.headers.get('user-agent') ?? null
-      await prisma.loginRecord.create({ data: { userId: user.id, ipAddress: ip, userAgent: ua } })
-    } catch {
-      // Table may not exist yet if migration is pending — login continues regardless
-    }
-
     const token = createSessionToken(user.id, user.role)
     const response = NextResponse.json({ success: true, name: user.name, role: user.role })
 
