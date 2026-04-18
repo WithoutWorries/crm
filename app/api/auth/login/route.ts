@@ -48,6 +48,18 @@ export async function POST(request: NextRequest) {
 
     response.cookies.set('solo-crm-auth', '', { expires: new Date(0), path: '/' })
 
+    // Record login — isolated so any failure never blocks the login response
+    try {
+      const forwarded = request.headers.get('x-forwarded-for')
+      const ipAddress = forwarded ? forwarded.split(',')[0].trim() : (request.headers.get('x-real-ip') ?? null)
+      const userAgent = request.headers.get('user-agent')
+      await prisma.loginRecord.create({
+        data: { userId: user.id, ipAddress, userAgent },
+      })
+    } catch (recordErr) {
+      console.error('[LOGIN_RECORD_ERROR]', recordErr)
+    }
+
     return response
   } catch (error) {
     console.error('[LOGIN_ERROR]', error)
