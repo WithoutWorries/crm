@@ -5,6 +5,17 @@ import { prisma } from '@/lib/prisma'
 // Called by the contact form on frasermackie.com alongside Formspree.
 // Creates a contact record + activity log in SoloCRM automatically.
 
+const CORS_HEADERS = {
+  'Access-Control-Allow-Origin': 'https://www.frasermackie.com',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type',
+}
+
+// Handle browser preflight request
+export async function OPTIONS(_request: NextRequest) {
+  return new NextResponse(null, { status: 204, headers: CORS_HEADERS })
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
@@ -13,7 +24,7 @@ export async function POST(request: NextRequest) {
     // Verify shared secret (set WEBSITE_WEBHOOK_SECRET in Vercel env vars)
     const expectedSecret = process.env.WEBSITE_WEBHOOK_SECRET
     if (!expectedSecret || secret !== expectedSecret) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401, headers: CORS_HEADERS })
     }
 
     if (!name?.trim() || !message?.trim()) {
@@ -55,9 +66,9 @@ export async function POST(request: NextRequest) {
       },
     })
 
-    return NextResponse.json({ success: true })
+    return NextResponse.json({ success: true }, { headers: CORS_HEADERS })
   } catch (error) {
     console.error('[WEBSITE_WEBHOOK_ERROR]', error)
-    return NextResponse.json({ error: 'Internal error' }, { status: 500 })
+    return NextResponse.json({ error: 'Internal error' }, { status: 500, headers: CORS_HEADERS })
   }
 }
