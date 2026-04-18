@@ -65,6 +65,7 @@ export async function POST(request: NextRequest) {
     // Log the website enquiry as an activity
     await prisma.activity.create({
       data: {
+        userId: adminUser.id,
         type: 'EMAIL',
         subject: `Website enquiry — ${fullName}`,
         summary: (message as string).trim(),
