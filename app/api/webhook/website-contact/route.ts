@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
           fullName,
           email: cleanEmail,
           influenceLevel: 'UNKNOWN',
-          relationshipType: 'NEW',
+          relationshipType: 'COLD',
         },
       })
     }
