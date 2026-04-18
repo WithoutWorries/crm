@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
 const COOKIE_NAME = 'solo-crm-session'
-const PUBLIC_PATHS = ['/login', '/api/auth/login']
+const PUBLIC_PATHS = ['/login', '/api/auth/login', '/api/webhook/']
 
 /** Verify HMAC-SHA256 signed session token using Web Crypto (Edge Runtime compatible) */
 async function verifySession(token: string, secret: string): Promise<boolean> {
