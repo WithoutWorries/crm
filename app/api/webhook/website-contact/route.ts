@@ -37,6 +37,12 @@ export async function POST(request: NextRequest) {
     const lastName = nameParts.slice(1).join(' ') || ''
     const cleanEmail = email?.trim().toLowerCase() || null
 
+    // Find the admin user to assign the contact to
+    const adminUser = await prisma.user.findFirst({ where: { role: 'ADMIN', isActive: true } })
+    if (!adminUser) {
+      return NextResponse.json({ error: 'No admin user found' }, { status: 500, headers: CORS_HEADERS })
+    }
+
     // Find existing contact by email, or create new
     let contact = cleanEmail
       ? await prisma.contact.findFirst({ where: { email: cleanEmail } })
@@ -45,6 +51,7 @@ export async function POST(request: NextRequest) {
     if (!contact) {
       contact = await prisma.contact.create({
         data: {
+          userId: adminUser.id,
           firstName,
           lastName,
           fullName,
