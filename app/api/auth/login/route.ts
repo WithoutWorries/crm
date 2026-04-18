@@ -35,6 +35,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 })
     }
 
+    // Record the login event (best-effort — never block the login if this fails)
+    const ip =
+      request.headers.get('x-forwarded-for')?.split(',')[0].trim() ??
+      request.headers.get('x-real-ip') ??
+      null
+    const ua = request.headers.get('user-agent') ?? null
+    prisma.loginRecord.create({ data: { userId: user.id, ipAddress: ip, userAgent: ua } }).catch(() => {})
+
     const token = createSessionToken(user.id, user.role)
     const response = NextResponse.json({ success: true, name: user.name, role: user.role })
 

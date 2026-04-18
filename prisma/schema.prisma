@@ -177,6 +177,20 @@ model User {
   notes         Note[]
   tags          Tag[]
   auditLogs     AuditLog[]
+  loginRecords  LoginRecord[]
+}
+
+model LoginRecord {
+  id        String   @id @default(cuid())
+  userId    String
+  ipAddress String?
+  userAgent String?
+  loginAt   DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([loginAt])
 }
 
 model AuditLog {
