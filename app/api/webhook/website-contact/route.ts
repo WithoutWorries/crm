@@ -6,7 +6,7 @@ import { prisma } from '@/lib/prisma'
 // Creates a contact record + activity log in SoloCRM automatically.
 
 const CORS_HEADERS = {
-  'Access-Control-Allow-Origin': 'https://www.frasermackie.com',
+  'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type',
 }
