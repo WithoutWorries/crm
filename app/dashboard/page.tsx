@@ -8,6 +8,7 @@ import { PipelineSummary } from '@/components/dashboard/pipeline-summary'
 import { RecentActivity } from '@/components/dashboard/recent-activity'
 import { UpcomingTasks } from '@/components/dashboard/upcoming-tasks'
 import { WelcomeGuide } from '@/components/dashboard/welcome-guide'
+import { Greeting } from '@/components/dashboard/greeting'
 
 export default async function DashboardPage() {
   const token = cookies().get(COOKIE_NAME)?.value
@@ -68,17 +69,11 @@ export default async function DashboardPage() {
     value: item._sum.estimatedValue ? Math.round(Number(item._sum.estimatedValue)) : 0,
   }))
 
-  const hour = now.getHours()
-  const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening'
+  const dateString = now.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900 dark:text-fmea-hi">{greeting}, {displayName}</h1>
-        <p className="text-sm text-slate-500 dark:text-fmea-dim mt-0.5">
-          {now.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
-        </p>
-      </div>
+      <Greeting name={displayName} dateString={dateString} />
 
       <StatsCards
         openOpportunities={openOpps}
