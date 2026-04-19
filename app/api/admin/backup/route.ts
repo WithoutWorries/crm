@@ -17,6 +17,12 @@ export async function GET() {
       activities,
       notes,
       auditLogs,
+      loginRecords,
+      tags,
+      companyTags,
+      contactTags,
+      opportunityTags,
+      opportunityContacts,
     ] = await Promise.all([
       prisma.user.findMany({
         select: {
@@ -33,11 +39,17 @@ export async function GET() {
       prisma.activity.findMany({ orderBy: { happenedAt: 'asc' } }),
       prisma.note.findMany({ orderBy: { createdAt: 'asc' } }),
       prisma.auditLog.findMany({ orderBy: { createdAt: 'asc' } }),
+      prisma.loginRecord.findMany({ orderBy: { loginAt: 'asc' } }),
+      prisma.tag.findMany({ orderBy: { createdAt: 'asc' } }),
+      prisma.companyTag.findMany(),
+      prisma.contactTag.findMany(),
+      prisma.opportunityTag.findMany(),
+      prisma.opportunityContact.findMany(),
     ])
 
     const backup = {
       exportedAt: new Date().toISOString(),
-      schemaVersion: '3.0',
+      schemaVersion: '4.0',
       counts: {
         users: users.length,
         companies: companies.length,
@@ -47,6 +59,12 @@ export async function GET() {
         activities: activities.length,
         notes: notes.length,
         auditLogs: auditLogs.length,
+        loginRecords: loginRecords.length,
+        tags: tags.length,
+        companyTags: companyTags.length,
+        contactTags: contactTags.length,
+        opportunityTags: opportunityTags.length,
+        opportunityContacts: opportunityContacts.length,
       },
       data: {
         users,
@@ -57,6 +75,12 @@ export async function GET() {
         activities,
         notes,
         auditLogs,
+        loginRecords,
+        tags,
+        companyTags,
+        contactTags,
+        opportunityTags,
+        opportunityContacts,
       },
     }
 
