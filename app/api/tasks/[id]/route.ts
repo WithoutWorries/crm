@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireSession } from '@/lib/session'
+import { logAudit } from '@/lib/audit'
 
 export async function GET(_request: NextRequest, { params }: { params: { id: string } }) {
   const session = requireSession()
@@ -42,6 +43,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
         companyId: body.companyId !== undefined ? body.companyId : task.companyId,
       },
     })
+    await logAudit(session.userId, 'UPDATE', 'Task', updated.id, updated.title)
     return NextResponse.json(updated)
   } catch (error) {
     console.error('[TASK_PUT_ERROR]', error)
@@ -58,6 +60,7 @@ export async function DELETE(_request: NextRequest, { params }: { params: { id: 
     const task = await prisma.task.findUnique({ where: { id: params.id } })
     if (!task) return NextResponse.json({ error: 'Not found' }, { status: 404 })
     await prisma.task.delete({ where: { id: params.id } })
+    await logAudit(session.userId, 'DELETE', 'Task', task.id, task.title)
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error('[TASK_DELETE_ERROR]', error)

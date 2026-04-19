@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireSession } from '@/lib/session'
+import { logAudit } from '@/lib/audit'
 
 export async function GET(request: NextRequest) {
   const session = requireSession()
@@ -40,6 +41,7 @@ export async function POST(request: NextRequest) {
         companyId: body.companyId || null,
       },
     })
+    await logAudit(session.userId, 'CREATE', 'Task', task.id, task.title)
     return NextResponse.json(task, { status: 201 })
   } catch (error) {
     console.error('[TASKS_POST_ERROR]', error)
