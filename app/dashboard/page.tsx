@@ -9,6 +9,7 @@ import { RecentActivity } from '@/components/dashboard/recent-activity'
 import { UpcomingTasks } from '@/components/dashboard/upcoming-tasks'
 import { WelcomeGuide } from '@/components/dashboard/welcome-guide'
 import { Greeting } from '@/components/dashboard/greeting'
+import { ProcurementSummary } from '@/components/dashboard/procurement-summary'
 
 export default async function DashboardPage() {
   const token = cookies().get(COOKIE_NAME)?.value
@@ -32,6 +33,7 @@ export default async function DashboardPage() {
     totalContacts,
     recentActivities,
     upcomingTasks,
+    openProcurement,
   ] = await Promise.all([
     prisma.opportunity.count({ where: { stage: { notIn: ['WON', 'LOST'] } } }),
     prisma.opportunity.count({ where: { stage: 'WON', wonDate: { gte: yearStart } } }),
@@ -59,6 +61,17 @@ export default async function DashboardPage() {
       orderBy: { dueDate: 'asc' },
       take: 6,
     }),
+    session
+      ? prisma.procurementProject.findMany({
+          where: { userId: session.userId, status: 'OPEN' },
+          orderBy: [{ decisionDeadline: 'asc' }, { createdAt: 'desc' }],
+          take: 6,
+          select: {
+            id: true, title: true, category: true, decisionDeadline: true,
+            quotes: { select: { status: true, feeAmount: true, feeCurrency: true } },
+          },
+        })
+      : Promise.resolve([]),
   ])
 
   const pipelineTotal = Math.round(Number(pipelineValue._sum.estimatedValue ?? 0))
@@ -70,6 +83,16 @@ export default async function DashboardPage() {
   }))
 
   const dateString = now.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+
+  // Serialize Prisma Decimal → number for client component boundary
+  const procurementProjects = openProcurement.map(p => ({
+    ...p,
+    decisionDeadline: p.decisionDeadline ? p.decisionDeadline.toISOString() : null,
+    quotes: p.quotes.map(q => ({
+      ...q,
+      feeAmount: q.feeAmount ? Number(q.feeAmount) : null,
+    })),
+  }))
 
   return (
     <div className="space-y-6">
@@ -94,6 +117,8 @@ export default async function DashboardPage() {
       </div>
 
       <UpcomingTasks tasks={upcomingTasks} />
+
+      <ProcurementSummary projects={procurementProjects} />
 
       <WelcomeGuide />
     </div>

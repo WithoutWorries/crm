@@ -23,6 +23,9 @@ export async function GET() {
       contactTags,
       opportunityTags,
       opportunityContacts,
+      procurementProjects,
+      procurementSuppliers,
+      procurementQuotes,
     ] = await Promise.all([
       prisma.user.findMany({
         select: {
@@ -45,11 +48,14 @@ export async function GET() {
       prisma.contactTag.findMany(),
       prisma.opportunityTag.findMany(),
       prisma.opportunityContact.findMany(),
+      prisma.procurementProject.findMany({ orderBy: { createdAt: 'asc' } }),
+      prisma.procurementSupplier.findMany({ orderBy: { createdAt: 'asc' } }),
+      prisma.procurementQuote.findMany({ orderBy: { createdAt: 'asc' } }),
     ])
 
     const backup = {
       exportedAt: new Date().toISOString(),
-      schemaVersion: '4.0',
+      schemaVersion: '5.0',
       counts: {
         users: users.length,
         companies: companies.length,
@@ -65,6 +71,9 @@ export async function GET() {
         contactTags: contactTags.length,
         opportunityTags: opportunityTags.length,
         opportunityContacts: opportunityContacts.length,
+        procurementProjects: procurementProjects.length,
+        procurementSuppliers: procurementSuppliers.length,
+        procurementQuotes: procurementQuotes.length,
       },
       data: {
         users,
@@ -81,6 +90,9 @@ export async function GET() {
         contactTags,
         opportunityTags,
         opportunityContacts,
+        procurementProjects,
+        procurementSuppliers,
+        procurementQuotes,
       },
     }
 
