@@ -1,6 +1,43 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireSession } from '@/lib/session'
 
+const PROCUREMENT_PROMPT = `You are a procurement assistant for a freelance engineering consultant.
+The user will paste a supplier's quote or proposal response email.
+Extract all available structured information and return ONLY a valid JSON object — no markdown, no explanation.
+
+Return this exact shape (use null for anything not found or unclear):
+{
+  "supplier": {
+    "name": string | null,
+    "contactName": string | null,
+    "email": string | null,
+    "website": string | null,
+    "location": string | null
+  },
+  "quote": {
+    "feeAmount": number | null,
+    "feeCurrency": "EUR" | "GBP" | "USD",
+    "feeType": "FIXED" | "HOURLY" | "DAILY" | "TBC",
+    "servicesOffered": string | null,
+    "availability": string | null,
+    "experienceNotes": string | null,
+    "prosNotes": string | null,
+    "consNotes": string | null
+  }
+}
+
+Rules:
+- name: the firm or company name (not the individual's name)
+- contactName: the person who authored the email
+- feeAmount: numeric value only, no currency symbols
+- feeType: FIXED if a total project price, HOURLY if per hour, DAILY if per day, TBC if not clear
+- servicesOffered: concise description of what they are proposing to provide
+- availability: when they can start or expected delivery timeframe
+- experienceNotes: relevant experience, credentials, or track record they mention
+- prosNotes: standout strengths — certifications, specialisms, strong track record
+- consNotes: caveats, limitations, exclusions, or anything that gives pause
+- feeCurrency: default EUR if not specified`
+
 const SYSTEM_PROMPT = `You are a CRM data extraction assistant for a freelance engineering consultant based in Europe.
 The user will paste raw text from an email, LinkedIn message, or typed call notes.
 Extract all available structured information and return ONLY a valid JSON object — no markdown, no explanation.
@@ -53,10 +90,12 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const { text } = await request.json()
+    const { text, mode } = await request.json()
     if (!text?.trim()) {
       return NextResponse.json({ error: 'No text provided' }, { status: 400 })
     }
+
+    const systemPrompt = mode === 'procurement' ? PROCUREMENT_PROMPT : SYSTEM_PROMPT
 
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -68,7 +107,7 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify({
         model: 'claude-haiku-4-5-20251001',
         max_tokens: 2048,
-        system: SYSTEM_PROMPT,
+        system: systemPrompt,
         messages: [{ role: 'user', content: text.trim() }],
       }),
     })
