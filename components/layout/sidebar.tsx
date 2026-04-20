@@ -15,6 +15,7 @@ import {
   Shield,
   Zap,
   Clock,
+  Briefcase,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -33,6 +34,7 @@ const navItems = [
   { href: '/companies', icon: Building2, label: 'Companies' },
   { href: '/tasks', icon: CheckSquare, label: 'Tasks' },
   { href: '/activities', icon: Activity, label: 'Activities' },
+  { href: '/procurement', icon: Briefcase, label: 'Procurement' },
 ]
 
 export function Sidebar() {

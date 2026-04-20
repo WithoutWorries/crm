@@ -192,3 +192,71 @@ export const URGENCY_COLORS: Record<string, string> = {
   HIGH: 'bg-orange-100 text-orange-800',
   CRITICAL: 'bg-red-100 text-red-800',
 }
+
+// ─── Procurement ────────────────────────────────────────────────────────────
+
+export const PROCUREMENT_CATEGORY_LABELS: Record<string, string> = {
+  LEGAL: 'Legal',
+  ENGINEERING: 'Engineering',
+  FINANCIAL: 'Financial',
+  IT: 'IT',
+  CONSTRUCTION: 'Construction',
+  OTHER: 'Other',
+}
+
+// Solid vibrant chip colours — white text
+export const PROCUREMENT_CATEGORY_COLORS: Record<string, string> = {
+  LEGAL:        'bg-violet-600 text-white',
+  ENGINEERING:  'bg-blue-600 text-white',
+  FINANCIAL:    'bg-emerald-600 text-white',
+  IT:           'bg-cyan-500 text-white',
+  CONSTRUCTION: 'bg-orange-500 text-white',
+  OTHER:        'bg-slate-500 text-white',
+}
+
+// Left-border accent colours for project cards
+export const PROCUREMENT_CATEGORY_BORDER: Record<string, string> = {
+  LEGAL:        'border-violet-500',
+  ENGINEERING:  'border-blue-500',
+  FINANCIAL:    'border-emerald-500',
+  IT:           'border-cyan-400',
+  CONSTRUCTION: 'border-orange-500',
+  OTHER:        'border-slate-400',
+}
+
+export const PROCUREMENT_STATUS_LABELS: Record<string, string> = {
+  OPEN:    'Open',
+  DECIDED: 'Decided',
+  CLOSED:  'Closed',
+  ON_HOLD: 'On Hold',
+}
+
+export const PROCUREMENT_STATUS_COLORS: Record<string, string> = {
+  OPEN:    'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300',
+  DECIDED: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300',
+  CLOSED:  'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400',
+  ON_HOLD: 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300',
+}
+
+export const QUOTE_STATUS_LABELS: Record<string, string> = {
+  AWAITED:     'Awaited',
+  RECEIVED:    'Received',
+  SHORTLISTED: 'Shortlisted',
+  ACCEPTED:    'Accepted',
+  REJECTED:    'Rejected',
+}
+
+export const QUOTE_STATUS_COLORS: Record<string, string> = {
+  AWAITED:     'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400',
+  RECEIVED:    'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300',
+  SHORTLISTED: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300',
+  ACCEPTED:    'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300',
+  REJECTED:    'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300',
+}
+
+export const FEE_TYPE_LABELS: Record<string, string> = {
+  FIXED:  'Fixed',
+  HOURLY: 'Per Hour',
+  DAILY:  'Per Day',
+  TBC:    'TBC',
+}
