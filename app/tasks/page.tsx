@@ -5,7 +5,7 @@ import { PRIORITY_LABELS, PRIORITY_COLORS } from '@/lib/constants'
 import { Badge } from '@/components/shared/badge'
 import { formatRelativeDate, isOverdue, isDueToday, isDueSoon } from '@/lib/utils'
 import { Task } from '@prisma/client'
-import { Plus, Check, Trash2, Pencil } from 'lucide-react'
+import { Plus, Check, Trash2, Pencil, CalendarDays, Copy, RefreshCw } from 'lucide-react'
 import Link from 'next/link'
 import { useCurrentUser } from '@/hooks/use-current-user'
 
@@ -33,6 +33,38 @@ export default function TasksPage() {
   }
 
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
+  const [calendarToken, setCalendarToken] = useState<string | null>(null)
+  const [copiedCal, setCopiedCal] = useState(false)
+  const [regenerating, setRegenerating] = useState(false)
+
+  useEffect(() => {
+    fetch('/api/calendar/token')
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d?.token) setCalendarToken(d.token) })
+      .catch(() => {})
+  }, [])
+
+  const calendarUrl = calendarToken
+    ? `${typeof window !== 'undefined' ? window.location.origin : 'https://crm.frasermackie.com'}/api/calendar/tasks.ics?token=${calendarToken}`
+    : null
+
+  const handleCopyCal = async () => {
+    if (!calendarUrl) return
+    await navigator.clipboard.writeText(calendarUrl)
+    setCopiedCal(true)
+    setTimeout(() => setCopiedCal(false), 2000)
+  }
+
+  const handleRegenerateToken = async () => {
+    if (!confirm('Regenerating the token will break any existing calendar subscriptions. Continue?')) return
+    setRegenerating(true)
+    const res = await fetch('/api/calendar/token', { method: 'POST' })
+    if (res.ok) {
+      const d = await res.json()
+      setCalendarToken(d.token)
+    }
+    setRegenerating(false)
+  }
 
   const handleCompleteTask = async (taskId: string) => {
     try {
@@ -168,6 +200,43 @@ export default function TasksPage() {
           New Task
         </Link>
       </div>
+
+      {/* Calendar subscription panel */}
+      {calendarUrl && (
+        <div className="mb-8 bg-white dark:bg-fmea-bg2 border border-slate-200 dark:border-fmea-border rounded-xl p-5">
+          <div className="flex items-start gap-3">
+            <div className="p-2 rounded-lg bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 shrink-0">
+              <CalendarDays className="h-5 w-5" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-slate-900 dark:text-fmea-hi mb-0.5">Calendar subscription</p>
+              <p className="text-xs text-slate-500 dark:text-fmea-dim mb-3">
+                Subscribe in Apple Calendar, Outlook, or Google Calendar. Tasks appear as all-day events — shareable with others.
+              </p>
+              <div className="flex items-center gap-2">
+                <code className="flex-1 min-w-0 truncate text-xs bg-slate-50 dark:bg-fmea-bg3 border border-slate-200 dark:border-fmea-border rounded-lg px-3 py-2 text-slate-700 dark:text-fmea-dim font-mono">
+                  {calendarUrl}
+                </code>
+                <button
+                  onClick={handleCopyCal}
+                  className="shrink-0 inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-indigo-600 text-white text-xs font-semibold hover:bg-indigo-700 transition-colors"
+                >
+                  {copiedCal ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                  {copiedCal ? 'Copied!' : 'Copy'}
+                </button>
+                <button
+                  onClick={handleRegenerateToken}
+                  disabled={regenerating}
+                  className="shrink-0 p-2 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-fmea-text hover:bg-slate-100 dark:hover:bg-fmea-bg3 transition-colors"
+                  title="Regenerate token (breaks existing subscriptions)"
+                >
+                  <RefreshCw className={`h-4 w-4 ${regenerating ? 'animate-spin' : ''}`} />
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {loading ? (
         <div className="text-center py-12">Loading...</div>
