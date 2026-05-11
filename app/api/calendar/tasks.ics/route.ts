@@ -94,7 +94,7 @@ export async function GET(request: NextRequest) {
     lines.push(foldLine(`SUMMARY:${icalEscape(summary)}`))
     lines.push(foldLine(`DESCRIPTION:${icalEscape(descParts.join('\\n'))}`))
     lines.push(`LAST-MODIFIED:${icalDate(task.updatedAt)}`)
-    lines.push(`STATUS:${task.status === 'IN_PROGRESS' ? 'IN-PROCESS' : 'NEEDS-ACTION'}`)
+    lines.push('STATUS:CONFIRMED')
     if (overdue) {
       lines.push('PRIORITY:1')
     } else if (task.priority === 'HIGH') {
@@ -105,13 +105,12 @@ export async function GET(request: NextRequest) {
 
   lines.push('END:VCALENDAR')
 
-  const ical = lines.join('\r\n')
+  const ical = lines.join('\r\n') + '\r\n'
 
   return new NextResponse(ical, {
     status: 200,
     headers: {
       'Content-Type': 'text/calendar; charset=utf-8',
-      'Content-Disposition': 'attachment; filename="crm-tasks.ics"',
       'Cache-Control': 'no-cache, no-store, must-revalidate',
     },
   })
