@@ -2,14 +2,31 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
 const COOKIE_NAME = 'solo-crm-session'
-const PUBLIC_PATHS = ['/login', '/api/auth/login', '/api/webhook/']
+const PUBLIC_PATHS = [
+  '/login',
+  '/api/auth/login',
+  '/api/webhook/',
+  '/api/calendar/tasks.ics',
+  '/api/calendar/tasks.json',
+  '/api/cron/daily-digest',
+]
 
-/** Verify HMAC-SHA256 signed session token using Web Crypto (Edge Runtime compatible) */
-async function verifySession(token: string, secret: string): Promise<boolean> {
+/** Verify an expiring HMAC-SHA256 session token using Edge-compatible Web Crypto. */
+async function verifySession(token: string, secret: string): Promise<{ role: string } | null> {
   const parts = token.split('|')
-  if (parts.length !== 3) return false
-  const [userId, role, sig] = parts
-  if (!userId || !role || !sig) return false
+  if (parts.length !== 4) return null
+  const [userId, role, expiresAtValue, sig] = parts
+  const expiresAt = Number.parseInt(expiresAtValue, 10)
+  if (
+    !userId ||
+    !role ||
+    !sig ||
+    !Number.isFinite(expiresAt) ||
+    expiresAt <= Math.floor(Date.now() / 1000) ||
+    !/^[a-f0-9]{64}$/i.test(sig)
+  ) {
+    return null
+  }
 
   const enc = new TextEncoder()
   const key = await crypto.subtle.importKey(
@@ -21,7 +38,13 @@ async function verifySession(token: string, secret: string): Promise<boolean> {
   )
 
   const sigBytes = new Uint8Array(sig.match(/.{2}/g)!.map((b) => parseInt(b, 16)))
-  return crypto.subtle.verify('HMAC', key, sigBytes, enc.encode(`${userId}|${role}`))
+  const valid = await crypto.subtle.verify(
+    'HMAC',
+    key,
+    sigBytes,
+    enc.encode(`${userId}|${role}|${expiresAt}`)
+  )
+  return valid ? { role } : null
 }
 
 export async function middleware(request: NextRequest) {
@@ -38,15 +61,14 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
-  const valid = await verifySession(token, secret)
-  if (!valid) {
+  const session = await verifySession(token, secret)
+  if (!session) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
-  // Admin-only routes — role is the second segment of the token
+  // Admin-only routes
   if (pathname.startsWith('/admin') || pathname.startsWith('/api/admin')) {
-    const role = token.split('|')[1]
-    if (role !== 'ADMIN') {
+    if (session.role !== 'ADMIN') {
       return NextResponse.redirect(new URL('/dashboard', request.url))
     }
   }

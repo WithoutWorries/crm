@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { requireActiveSession } from '@/lib/session'
 
 export async function GET(request: NextRequest) {
+  const session = await requireActiveSession()
+  if (session instanceof NextResponse) return session
+  if (session.role !== 'ADMIN') return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+
   try {
     const { searchParams } = new URL(request.url)
     const page  = Math.max(1, parseInt(searchParams.get('page')  ?? '1', 10))

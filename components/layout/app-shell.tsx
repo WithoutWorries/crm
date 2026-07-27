@@ -17,7 +17,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <InactivityTimer />
       <Sidebar />
       <TopBar />
-      <main className="ml-60 pt-16 pb-8 px-8 min-h-screen bg-slate-50 dark:bg-fmea-bg">
+      <main className="min-h-screen bg-[#f7f6f2] px-4 pb-12 pt-8 dark:bg-fmea-bg sm:px-6 md:ml-60 md:px-8 md:pt-10">
         {children}
       </main>
     </>

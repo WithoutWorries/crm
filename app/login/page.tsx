@@ -25,7 +25,7 @@ export default function LoginPage() {
       if (res.ok) {
         // Keep loading=true so the button stays in "Signing in…" state
         // while Next.js navigates — component will unmount on arrival.
-        router.push('/dashboard')
+        router.push('/knowledge')
       } else {
         setError('Invalid email or password.')
         setLoading(false)

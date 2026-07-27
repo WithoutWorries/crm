@@ -21,7 +21,6 @@ export async function GET(_request: NextRequest) {
     take: 20,
   })
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const unreadCount = recent.filter((r: any) => r.createdAt > since).length
 
   return NextResponse.json({ unreadCount, recent })

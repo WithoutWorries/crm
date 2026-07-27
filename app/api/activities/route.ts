@@ -19,7 +19,6 @@ export async function GET(request: NextRequest) {
         ...(contactId ? { contactId } : {}),
         ...(opportunityId ? { opportunityId } : {}),
         ...(companyId ? { companyId } : {}),
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         ...(type ? { type: type as any } : {}),
       },
       include: { contact: true, opportunity: true, company: true },

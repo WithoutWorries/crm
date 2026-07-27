@@ -16,6 +16,7 @@ import {
   Zap,
   Clock,
   Briefcase,
+  BookOpen,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -27,6 +28,7 @@ interface Me {
 }
 
 const navItems = [
+  { href: '/knowledge', icon: BookOpen, label: 'Knowledge' },
   { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { href: '/pipeline', icon: Kanban, label: 'Pipeline' },
   { href: '/opportunities', icon: Target, label: 'Opportunities' },
@@ -35,6 +37,7 @@ const navItems = [
   { href: '/tasks', icon: CheckSquare, label: 'Tasks' },
   { href: '/activities', icon: Activity, label: 'Activities' },
   { href: '/procurement', icon: Briefcase, label: 'Procurement' },
+  { href: '/quick-capture', icon: Zap, label: 'CRM Capture' },
 ]
 
 export function Sidebar() {
@@ -53,29 +56,15 @@ export function Sidebar() {
   const displayName = me?.name || me?.email?.split('@')[0] || '…'
 
   return (
-    <div className="fixed left-0 top-0 h-screen w-60 bg-fmea-nav text-white flex flex-col">
+    <div className="fixed left-0 top-0 hidden h-screen w-60 flex-col bg-fmea-nav text-white md:flex">
       {/* Logo */}
       <div className="px-6 py-8 border-b border-fmea-border">
-        <h1 className="text-2xl font-bold text-fmea-hi">SoloCRM</h1>
-        <p className="text-xs text-fmea-dim mt-1">Engineering Consultant</p>
+        <h1 className="text-2xl font-bold text-fmea-hi">Reference</h1>
+        <p className="text-xs text-fmea-dim mt-1">Private knowledge &amp; CRM</p>
       </div>
 
       {/* Nav Items */}
       <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
-        {/* Quick Capture — primary action */}
-        <Link
-          href="/quick-capture"
-          className={cn(
-            'flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors text-sm font-semibold mb-3',
-            pathname.startsWith('/quick-capture')
-              ? 'bg-cyan-400 text-fmea-bg'
-              : 'bg-cyan-500/15 text-cyan-400 hover:bg-cyan-500/25 hover:text-cyan-300 border border-cyan-500/30'
-          )}
-        >
-          <Zap className="h-4 w-4" />
-          <span>Quick Capture</span>
-        </Link>
-
         {navItems.map((item) => {
           const Icon = item.icon
           const isActive = pathname.startsWith(item.href)
@@ -148,7 +137,7 @@ export function Sidebar() {
           <LogOut className="h-4 w-4" />
           <span>Sign out</span>
         </button>
-        <p className="text-[10px] text-fmea-dim px-2">© 2025 SoloCRM</p>
+        <p className="text-[10px] text-fmea-dim px-2">Private workspace</p>
       </div>
     </div>
   )

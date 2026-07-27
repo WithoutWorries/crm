@@ -4,8 +4,8 @@ import { ThemeProvider } from '@/components/shared/theme-provider'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'SoloCRM - Engineering Consultant CRM',
-  description: 'A powerful CRM for freelance engineering consultants',
+  title: 'Reference - Private Knowledge & CRM',
+  description: 'A private system for capturing and rediscovering useful knowledge',
 }
 
 export default function RootLayout({

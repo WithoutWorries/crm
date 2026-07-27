@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { requireSession } from '@/lib/session'
+import { requireActiveSession } from '@/lib/session'
 
 export async function GET() {
-  const session = requireSession()
+  const session = await requireActiveSession()
   if (session instanceof NextResponse) return session
   if (session.role !== 'ADMIN') return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
@@ -55,7 +55,7 @@ export async function GET() {
 
     const backup = {
       exportedAt: new Date().toISOString(),
-      schemaVersion: '5.0',
+      schemaVersion: '6.0',
       counts: {
         users: users.length,
         companies: companies.length,

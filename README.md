@@ -1,9 +1,10 @@
-# SoloCRM - Engineering Consultant CRM
+# Reference / SoloCRM
 
-A modern, fully-featured CRM application built for freelance engineering consultants. Built with Next.js 14, TypeScript, Tailwind CSS, Prisma, and PostgreSQL.
+A private knowledge and reference system alongside an engineering consultancy CRM. Built with Next.js 14, TypeScript, Tailwind CSS, Prisma, and PostgreSQL.
 
 ## Features
 
+- **Private Knowledge**: Frictionless capture, recent notes, full-text search, note view, and editing
 - **Dashboard**: Overview of open opportunities, pipeline value, overdue tasks, and recent activity
 - **Pipeline Management**: Kanban-style board to track opportunities through 8 stages
 - **Companies**: Manage client companies with industry, regulatory, and contact information
@@ -49,13 +50,15 @@ cp .env.example .env.local
 Edit `.env.local` and set your PostgreSQL connection string:
 ```
 DATABASE_URL="postgresql://user:password@localhost:5432/solo_crm"
+SESSION_SECRET="generate-with-openssl-rand-hex-32"
 ```
 
-4. Set up the database and seed with sample data:
+4. Apply database migrations:
 ```bash
-npm run db:push
-npm run db:seed
+npx prisma migrate deploy
 ```
+
+`npm run db:seed` deletes existing application data before creating sample data. Never run it against a database you need to preserve.
 
 5. Start the development server:
 ```bash
@@ -64,11 +67,9 @@ npm run dev
 
 6. Open [http://localhost:3000](http://localhost:3000) in your browser
 
-## Default Login
+## Authentication
 
-For MVP purposes, all users are logged in as:
-- **Email**: consultant@solocrm.com
-- **Password**: (any password accepted)
+Users sign in with their email and PBKDF2-hashed password. Sessions use an HTTP-only, HMAC-signed cookie with a server-verified expiry. Create the first local admin through the seed script only on a disposable database, or use an existing production account.
 
 The application includes sample data for a freelance engineering consultant with:
 - 5 client companies (Altitude Systems, MedSafe Technologies, Neptune Defence Systems, Vitaflow Medical, GridEdge Renewables)
@@ -191,8 +192,10 @@ The Prisma schema includes:
 
 ## API Routes
 
-All routes use hardcoded `userId: "user_1"` for MVP:
+Routes require a signed session unless explicitly documented as a token- or secret-protected integration:
 
+- `GET/POST /api/knowledge` - Private recent notes, search, and capture
+- `GET/PUT /api/knowledge/[id]` - Private note view and editing
 - `GET/POST /api/companies` - List and create companies
 - `GET/PUT/DELETE /api/companies/[id]` - Company detail operations
 - `GET/POST /api/contacts` - List and create contacts
@@ -207,10 +210,10 @@ All routes use hardcoded `userId: "user_1"` for MVP:
 
 ## Notes
 
-- This is an MVP implementation with hardcoded authentication (user_1)
 - All data is stored in PostgreSQL via Prisma ORM
-- The application is optimized for desktop and tablet use
-- No external authentication provider is configured (email/password login with any password)
+- Knowledge records are always scoped to the signed-in active user
+- The application has responsive navigation for desktop and mobile use
+- No external authentication provider is configured
 - Database timestamps use UTC (createdAt, updatedAt fields)
 
 ## Future Enhancements

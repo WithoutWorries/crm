@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { requireSession } from '@/lib/session'
+import { requireActiveSession } from '@/lib/session'
 
 export async function GET() {
-  const session = requireSession()
+  const session = await requireActiveSession()
   if (session instanceof NextResponse) return session
 
   const user = await prisma.user.findUnique({

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { verifyPassword, hashPassword } from '@/lib/auth'
-import { createSessionToken, COOKIE_NAME } from '@/lib/session'
+import { createSessionToken, COOKIE_NAME, SESSION_MAX_AGE_SECONDS } from '@/lib/session'
 
 export async function POST(request: NextRequest) {
   try {
@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      maxAge: 60 * 60 * 24 * 30,
+      maxAge: SESSION_MAX_AGE_SECONDS,
       path: '/',
     })
 

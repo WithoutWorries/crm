@@ -162,7 +162,7 @@ export function InactivityTimer() {
           Still there?
         </h2>
         <p className="text-sm text-slate-500 dark:text-fmea-dim mb-6">
-          You've been inactive for a while. For your security, you'll be signed out in{' '}
+          You&apos;ve been inactive for a while. For your security, you&apos;ll be signed out in{' '}
           <span className={`font-medium ${secondsLeft <= 30 ? 'text-red-500' : 'text-amber-600 dark:text-amber-400'}`}>
             {timeDisplay}
           </span>{' '}

@@ -1,8 +1,13 @@
 import { NextResponse } from 'next/server'
-import { requireSession, createSessionToken, COOKIE_NAME } from '@/lib/session'
+import {
+  requireActiveSession,
+  createSessionToken,
+  COOKIE_NAME,
+  SESSION_MAX_AGE_SECONDS,
+} from '@/lib/session'
 
 export async function POST() {
-  const session = requireSession()
+  const session = await requireActiveSession()
   if (session instanceof NextResponse) return session
 
   // Re-issue the cookie with a fresh maxAge, sliding the expiry window
@@ -12,7 +17,7 @@ export async function POST() {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
-    maxAge: 60 * 60 * 24 * 30,
+    maxAge: SESSION_MAX_AGE_SECONDS,
     path: '/',
   })
   return response
