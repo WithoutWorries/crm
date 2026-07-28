@@ -37,7 +37,7 @@ const navItems = [
   { href: '/tasks', icon: CheckSquare, label: 'Tasks' },
   { href: '/activities', icon: Activity, label: 'Activities' },
   { href: '/procurement', icon: Briefcase, label: 'Procurement' },
-  { href: '/quick-capture', icon: Zap, label: 'CRM Capture' },
+  { href: '/quick-capture', icon: Zap, label: 'Enquiry Capture' },
 ]
 
 export function Sidebar() {
@@ -60,7 +60,7 @@ export function Sidebar() {
       {/* Logo */}
       <div className="px-6 py-8 border-b border-fmea-border">
         <h1 className="text-2xl font-bold text-fmea-hi">Reference</h1>
-        <p className="text-xs text-fmea-dim mt-1">Private knowledge &amp; CRM</p>
+        <p className="text-xs text-fmea-dim mt-1">Private consulting workspace</p>
       </div>
 
       {/* Nav Items */}

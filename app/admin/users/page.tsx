@@ -135,7 +135,7 @@ export default function AdminUsersPage() {
           </div>
           <div>
             <h1 className="text-2xl font-bold text-slate-900 dark:text-fmea-hi">Team Users</h1>
-            <p className="text-sm text-slate-500 dark:text-fmea-dim">Manage access to SoloCRM</p>
+            <p className="text-sm text-slate-500 dark:text-fmea-dim">Manage access to Reference</p>
           </div>
         </div>
         <div className="flex items-center gap-2">

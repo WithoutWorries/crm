@@ -50,7 +50,10 @@ async function verifySession(token: string, secret: string): Promise<{ role: str
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
   const isPublic = PUBLIC_PATHS.some((p) => pathname.startsWith(p))
-  const isStaticAsset = pathname.startsWith('/_next') || pathname.startsWith('/favicon')
+  const isStaticAsset =
+    pathname.startsWith('/_next') ||
+    pathname.startsWith('/favicon') ||
+    pathname === '/reference-icon.png'
 
   if (isPublic || isStaticAsset) return NextResponse.next()
 

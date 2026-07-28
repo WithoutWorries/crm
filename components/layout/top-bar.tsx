@@ -49,7 +49,7 @@ export function TopBar() {
     { icon: CheckSquare, label: 'Tasks', href: '/tasks' },
     { icon: Activity, label: 'Activities', href: '/activities' },
     { icon: Briefcase, label: 'Procurement', href: '/procurement' },
-    { icon: Zap, label: 'CRM Capture', href: '/quick-capture' },
+    { icon: Zap, label: 'Enquiry Capture', href: '/quick-capture' },
   ]
 
   return (

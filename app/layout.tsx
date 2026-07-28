@@ -4,8 +4,12 @@ import { ThemeProvider } from '@/components/shared/theme-provider'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'Reference - Private Knowledge & CRM',
-  description: 'A private system for capturing and rediscovering useful knowledge',
+  title: 'Reference - Private Consulting Workspace',
+  description: 'A private workspace for useful knowledge, enquiries, decisions, and analysis',
+  icons: {
+    icon: '/reference-icon.png',
+    apple: '/reference-icon.png',
+  },
 }
 
 export default function RootLayout({
