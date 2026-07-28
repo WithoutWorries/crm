@@ -2,29 +2,29 @@
 
 import { useState } from 'react'
 import {
-  Activity,
   BookOpen,
-  Briefcase,
   Building2,
   CheckSquare,
-  LayoutDashboard,
   Menu,
   Moon,
   Plus,
-  Search,
   Sun,
   Target,
   Users,
   X,
-  Zap,
 } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { NAVIGATION_SECTIONS } from '@/components/layout/navigation'
 import { useTheme } from '@/components/shared/theme-provider'
 import { NotificationBell } from '@/components/layout/notification-bell'
 import { cn } from '@/lib/utils'
 
-export function TopBar() {
+interface TopBarProps {
+  sidebarCollapsed: boolean
+}
+
+export function TopBar({ sidebarCollapsed }: TopBarProps) {
   const [isQuickAddOpen, setIsQuickAddOpen] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const { theme, toggleTheme } = useTheme()
@@ -39,27 +39,19 @@ export function TopBar() {
     { icon: CheckSquare, label: 'New task', href: '/tasks/new' },
   ]
 
-  const mobileNav = [
-    { icon: BookOpen, label: 'Knowledge', href: '/knowledge' },
-    { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard' },
-    { icon: Search, label: 'Pipeline', href: '/pipeline' },
-    { icon: Target, label: 'Opportunities', href: '/opportunities' },
-    { icon: Users, label: 'Contacts', href: '/contacts' },
-    { icon: Building2, label: 'Companies', href: '/companies' },
-    { icon: CheckSquare, label: 'Tasks', href: '/tasks' },
-    { icon: Activity, label: 'Activities', href: '/activities' },
-    { icon: Briefcase, label: 'Procurement', href: '/procurement' },
-    { icon: Zap, label: 'Enquiry Capture', href: '/quick-capture' },
-  ]
-
   return (
-    <div className="sticky top-0 z-40 border-b border-stone-200 bg-white/95 backdrop-blur dark:border-fmea-border dark:bg-fmea-nav/95 md:ml-60">
+    <div
+      className={cn(
+        'sticky top-0 z-40 border-b border-stone-200 bg-white/95 backdrop-blur transition-[margin] duration-200 dark:border-fmea-border dark:bg-fmea-nav/95',
+        sidebarCollapsed ? 'md:ml-20' : 'md:ml-60'
+      )}
+    >
       <div className="flex h-16 items-center justify-between px-4 sm:px-6 md:px-8">
         <div className="flex items-center gap-3 md:flex-1">
           <button
             type="button"
             onClick={() => setIsMobileMenuOpen((open) => !open)}
-            className="rounded-lg p-2 text-slate-600 hover:bg-stone-100 dark:text-fmea-dim dark:hover:bg-fmea-bg3 md:hidden"
+            className="rounded-lg p-2 text-slate-600 hover:bg-stone-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-600 dark:text-fmea-dim dark:hover:bg-fmea-bg3 md:hidden"
             aria-label={isMobileMenuOpen ? 'Close navigation' : 'Open navigation'}
             aria-expanded={isMobileMenuOpen}
           >
@@ -121,27 +113,36 @@ export function TopBar() {
 
       {isMobileMenuOpen && (
         <nav className="border-t border-stone-200 bg-white px-3 py-3 dark:border-fmea-border dark:bg-fmea-nav md:hidden">
-          <div className="grid grid-cols-2 gap-1">
-            {mobileNav.map((item) => {
-              const Icon = item.icon
-              const active = pathname.startsWith(item.href)
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className={cn(
-                    'flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-medium',
-                    active
-                      ? 'bg-cyan-50 text-cyan-800 dark:bg-cyan-950/40 dark:text-fmea-accent'
-                      : 'text-slate-600 hover:bg-stone-100 dark:text-fmea-dim dark:hover:bg-fmea-bg3'
-                  )}
-                >
-                  <Icon className="h-4 w-4" />
-                  {item.label}
-                </Link>
-              )
-            })}
+          <div className="space-y-4">
+            {NAVIGATION_SECTIONS.map((section) => (
+              <section key={section.label} aria-label={section.label}>
+                <h2 className="mb-1 px-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400 dark:text-fmea-dim">
+                  {section.label}
+                </h2>
+                <div className="grid grid-cols-2 gap-1">
+                  {section.items.map((item) => {
+                    const Icon = item.icon
+                    const active = pathname.startsWith(item.href)
+                    return (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        onClick={() => setIsMobileMenuOpen(false)}
+                        className={cn(
+                          'flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-medium',
+                          active
+                            ? 'bg-cyan-50 text-cyan-800 dark:bg-cyan-950/40 dark:text-fmea-accent'
+                            : 'text-slate-600 hover:bg-stone-100 dark:text-fmea-dim dark:hover:bg-fmea-bg3'
+                        )}
+                      >
+                        <Icon className="h-4 w-4 shrink-0" />
+                        <span className="truncate">{item.label}</span>
+                      </Link>
+                    )
+                  })}
+                </div>
+              </section>
+            ))}
           </div>
         </nav>
       )}

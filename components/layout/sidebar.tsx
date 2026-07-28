@@ -1,23 +1,11 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import {
-  LayoutDashboard,
-  Kanban,
-  Target,
-  Users,
-  Building2,
-  CheckSquare,
-  Activity,
-  LogOut,
-  Shield,
-  Zap,
-  Clock,
-  Briefcase,
-  BookOpen,
-} from 'lucide-react'
+import { ChevronLeft, ChevronRight, Clock, LogOut, Shield } from 'lucide-react'
+import { NAVIGATION_SECTIONS } from '@/components/layout/navigation'
 import { cn } from '@/lib/utils'
 
 interface Me {
@@ -27,20 +15,12 @@ interface Me {
   role: 'ADMIN' | 'MEMBER'
 }
 
-const navItems = [
-  { href: '/knowledge', icon: BookOpen, label: 'Knowledge' },
-  { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-  { href: '/pipeline', icon: Kanban, label: 'Pipeline' },
-  { href: '/opportunities', icon: Target, label: 'Opportunities' },
-  { href: '/contacts', icon: Users, label: 'Contacts' },
-  { href: '/companies', icon: Building2, label: 'Companies' },
-  { href: '/tasks', icon: CheckSquare, label: 'Tasks' },
-  { href: '/activities', icon: Activity, label: 'Activities' },
-  { href: '/procurement', icon: Briefcase, label: 'Procurement' },
-  { href: '/quick-capture', icon: Zap, label: 'Enquiry Capture' },
-]
+interface SidebarProps {
+  collapsed: boolean
+  onToggle: () => void
+}
 
-export function Sidebar() {
+export function Sidebar({ collapsed, onToggle }: SidebarProps) {
   const pathname = usePathname()
   const [me, setMe] = useState<Me | null>(null)
 
@@ -56,89 +36,172 @@ export function Sidebar() {
   const displayName = me?.name || me?.email?.split('@')[0] || '…'
 
   return (
-    <div className="fixed left-0 top-0 hidden h-screen w-60 flex-col bg-fmea-nav text-white md:flex">
-      {/* Logo */}
-      <div className="px-6 py-8 border-b border-fmea-border">
-        <h1 className="text-2xl font-bold text-fmea-hi">Reference</h1>
-        <p className="text-xs text-fmea-dim mt-1">Private consulting workspace</p>
+    <aside
+      className={cn(
+        'fixed left-0 top-0 z-50 hidden h-screen flex-col bg-fmea-nav text-white transition-[width] duration-200 md:flex',
+        collapsed ? 'w-20' : 'w-60'
+      )}
+      aria-label="Primary navigation"
+    >
+      <div
+        className={cn(
+          'relative flex min-h-[6.5rem] items-center border-b border-fmea-border',
+          collapsed ? 'justify-center px-3' : 'px-5'
+        )}
+      >
+        <Link
+          href="/knowledge"
+          className={cn('flex min-w-0 items-center', collapsed ? 'justify-center' : 'gap-3')}
+          title={collapsed ? 'Reference' : undefined}
+        >
+          <Image
+            src="/reference-icon.png"
+            alt=""
+            width={42}
+            height={42}
+            className="h-10 w-10 shrink-0 rounded-xl"
+          />
+          {!collapsed && (
+            <div className="min-w-0">
+              <p className="truncate text-xl font-bold text-fmea-hi">Reference</p>
+              <p className="mt-0.5 truncate text-[10px] uppercase tracking-[0.08em] text-fmea-dim">
+                Consulting workspace
+              </p>
+            </div>
+          )}
+        </Link>
+
+        <button
+          type="button"
+          onClick={onToggle}
+          className="absolute -right-3 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full border border-fmea-border2 bg-fmea-bg2 text-fmea-dim shadow-md transition hover:border-fmea-accent hover:text-fmea-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fmea-accent focus-visible:ring-offset-2 focus-visible:ring-offset-fmea-nav"
+          aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+        >
+          {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+        </button>
       </div>
 
-      {/* Nav Items */}
-      <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
-        {navItems.map((item) => {
-          const Icon = item.icon
-          const isActive = pathname.startsWith(item.href)
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={cn(
-                'flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors text-sm font-medium',
-                isActive
-                  ? 'bg-fmea-accent text-fmea-bg'
-                  : 'text-fmea-dim hover:bg-fmea-bg3 hover:text-fmea-text'
-              )}
+      <nav className={cn('flex-1 overflow-y-auto py-5', collapsed ? 'px-2' : 'px-3')}>
+        <div className="space-y-6">
+          {NAVIGATION_SECTIONS.map((section) => (
+            <section
+              key={section.label}
+              aria-label={section.label}
+              className={cn(collapsed && 'border-t border-fmea-border pt-4 first:border-t-0 first:pt-0')}
             >
-              <Icon className="h-4 w-4" />
-              <span>{item.label}</span>
-            </Link>
-          )
-        })}
+              {!collapsed && (
+                <h2 className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-fmea-dim">
+                  {section.label}
+                </h2>
+              )}
 
-        {/* Admin section — visible to ADMIN role only */}
-        {me?.role === 'ADMIN' && (
-          <>
-            <div className="pt-4 pb-1">
-              <p className="px-4 text-[10px] font-semibold text-fmea-dim uppercase tracking-widest">Admin</p>
-            </div>
-            <Link
-              href="/admin/users"
-              className={cn(
-                'flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors text-sm font-medium',
-                pathname.startsWith('/admin/users')
-                  ? 'bg-violet-600 text-white'
-                  : 'text-fmea-dim hover:bg-fmea-bg3 hover:text-fmea-text'
-              )}
+              <div className="space-y-1">
+                {section.items.map((item) => {
+                  const Icon = item.icon
+                  const isActive = pathname.startsWith(item.href)
+
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      title={collapsed ? `${section.label}: ${item.label}` : undefined}
+                      aria-label={collapsed ? item.label : undefined}
+                      className={cn(
+                        'flex min-h-10 items-center rounded-lg text-sm font-medium transition-colors',
+                        collapsed ? 'justify-center px-2' : 'gap-3 px-3',
+                        isActive
+                          ? 'bg-fmea-accent text-fmea-bg'
+                          : 'text-fmea-dim hover:bg-fmea-bg3 hover:text-fmea-text'
+                      )}
+                    >
+                      <Icon className="h-[18px] w-[18px] shrink-0" />
+                      {!collapsed && <span className="truncate">{item.label}</span>}
+                    </Link>
+                  )
+                })}
+              </div>
+            </section>
+          ))}
+
+          {me?.role === 'ADMIN' && (
+            <section
+              aria-label="Admin"
+              className={cn('border-t border-fmea-border pt-4', collapsed ? '' : 'mt-2')}
             >
-              <Shield className="h-4 w-4" />
-              <span>Team Users</span>
-            </Link>
-            <Link
-              href="/admin/login-history"
-              className={cn(
-                'flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors text-sm font-medium',
-                pathname.startsWith('/admin/login-history')
-                  ? 'bg-violet-600 text-white'
-                  : 'text-fmea-dim hover:bg-fmea-bg3 hover:text-fmea-text'
+              {!collapsed && (
+                <h2 className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-fmea-dim">
+                  Admin
+                </h2>
               )}
-            >
-              <Clock className="h-4 w-4" />
-              <span>Login History</span>
-            </Link>
-          </>
-        )}
+              <div className="space-y-1">
+                <Link
+                  href="/admin/users"
+                  title={collapsed ? 'Admin: Team users' : undefined}
+                  aria-label={collapsed ? 'Team users' : undefined}
+                  className={cn(
+                    'flex min-h-10 items-center rounded-lg text-sm font-medium transition-colors',
+                    collapsed ? 'justify-center px-2' : 'gap-3 px-3',
+                    pathname.startsWith('/admin/users')
+                      ? 'bg-violet-600 text-white'
+                      : 'text-fmea-dim hover:bg-fmea-bg3 hover:text-fmea-text'
+                  )}
+                >
+                  <Shield className="h-[18px] w-[18px] shrink-0" />
+                  {!collapsed && <span>Team Users</span>}
+                </Link>
+                <Link
+                  href="/admin/login-history"
+                  title={collapsed ? 'Admin: Login history' : undefined}
+                  aria-label={collapsed ? 'Login history' : undefined}
+                  className={cn(
+                    'flex min-h-10 items-center rounded-lg text-sm font-medium transition-colors',
+                    collapsed ? 'justify-center px-2' : 'gap-3 px-3',
+                    pathname.startsWith('/admin/login-history')
+                      ? 'bg-violet-600 text-white'
+                      : 'text-fmea-dim hover:bg-fmea-bg3 hover:text-fmea-text'
+                  )}
+                >
+                  <Clock className="h-[18px] w-[18px] shrink-0" />
+                  {!collapsed && <span>Login History</span>}
+                </Link>
+              </div>
+            </section>
+          )}
+        </div>
       </nav>
 
-      {/* Footer: user identity + sign out */}
-      <div className="px-4 py-4 border-t border-fmea-border space-y-2">
-        <div className="flex items-center gap-3 px-2 py-1">
-          <div className="h-8 w-8 rounded-full bg-fmea-accent flex items-center justify-center text-fmea-bg text-sm font-bold shrink-0">
+      <div className={cn('border-t border-fmea-border py-4', collapsed ? 'px-2' : 'px-3')}>
+        <div className={cn('flex items-center py-1', collapsed ? 'justify-center' : 'gap-3 px-2')}>
+          <div
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-fmea-accent text-sm font-bold text-fmea-bg"
+            title={collapsed ? displayName : undefined}
+          >
             {displayName[0]?.toUpperCase()}
           </div>
-          <div className="min-w-0">
-            <p className="text-sm font-medium text-fmea-text truncate">{displayName}</p>
-            <p className="text-[10px] text-fmea-dim truncate">{me?.role === 'ADMIN' ? '⬡ Admin' : 'Member'}</p>
-          </div>
+          {!collapsed && (
+            <div className="min-w-0">
+              <p className="truncate text-sm font-medium text-fmea-text">{displayName}</p>
+              <p className="truncate text-[10px] text-fmea-dim">
+                {me?.role === 'ADMIN' ? 'Admin' : 'Member'}
+              </p>
+            </div>
+          )}
         </div>
+
         <button
           onClick={handleLogout}
-          className="w-full flex items-center gap-2 px-4 py-2 rounded-lg text-fmea-dim hover:bg-fmea-bg3 hover:text-fmea-text transition-colors text-sm font-medium"
+          title={collapsed ? 'Sign out' : undefined}
+          aria-label={collapsed ? 'Sign out' : undefined}
+          className={cn(
+            'mt-2 flex min-h-10 w-full items-center rounded-lg text-sm font-medium text-fmea-dim transition-colors hover:bg-fmea-bg3 hover:text-fmea-text',
+            collapsed ? 'justify-center px-2' : 'gap-2 px-3'
+          )}
         >
-          <LogOut className="h-4 w-4" />
-          <span>Sign out</span>
+          <LogOut className="h-[18px] w-[18px] shrink-0" />
+          {!collapsed && <span>Sign out</span>}
         </button>
-        <p className="text-[10px] text-fmea-dim px-2">Private workspace</p>
       </div>
-    </div>
+    </aside>
   )
 }
