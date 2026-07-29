@@ -1,51 +1,98 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { createHash, timingSafeEqual } from 'crypto'
 import { prisma } from '@/lib/prisma'
+import { readJsonObject } from '@/lib/request'
 
-// Public endpoint — protected by shared secret in request body.
+// Public endpoint — protected by a server-held shared secret.
 // Called by the contact form on frasermackie.com alongside Formspree.
 // Creates a contact record + activity log in SoloCRM automatically.
 
-const CORS_HEADERS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type',
+const DEFAULT_ALLOWED_ORIGINS = [
+  'https://frasermackie.com',
+  'https://www.frasermackie.com',
+]
+
+function allowedOrigins() {
+  const configured = process.env.WEBSITE_ALLOWED_ORIGINS
+    ?.split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean)
+  return configured?.length ? configured : DEFAULT_ALLOWED_ORIGINS
 }
 
-// Handle browser preflight request
-export async function OPTIONS(_request: NextRequest) {
-  return new NextResponse(null, { status: 204, headers: CORS_HEADERS })
+function corsHeaders(request: NextRequest) {
+  const origin = request.headers.get('origin')
+  const headers: Record<string, string> = {
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, X-Webhook-Secret',
+    'Vary': 'Origin',
+    'Cache-Control': 'no-store',
+  }
+  if (origin && allowedOrigins().includes(origin)) {
+    headers['Access-Control-Allow-Origin'] = origin
+  }
+  return headers
+}
+
+function secretsMatch(provided: string, expected: string) {
+  const providedHash = createHash('sha256').update(provided).digest()
+  const expectedHash = createHash('sha256').update(expected).digest()
+  return timingSafeEqual(providedHash, expectedHash)
+}
+
+export async function OPTIONS(request: NextRequest) {
+  const origin = request.headers.get('origin')
+  if (!origin || !allowedOrigins().includes(origin)) {
+    return NextResponse.json({ error: 'Origin not allowed' }, { status: 403 })
+  }
+  return new NextResponse(null, { status: 204, headers: corsHeaders(request) })
 }
 
 export async function POST(request: NextRequest) {
+  const headers = corsHeaders(request)
   try {
-    const body = await request.json()
-    const { name, email, message, secret } = body
+    const origin = request.headers.get('origin')
+    if (origin && !allowedOrigins().includes(origin)) {
+      return NextResponse.json({ error: 'Origin not allowed' }, { status: 403, headers })
+    }
 
-    // Verify shared secret (set WEBSITE_WEBHOOK_SECRET in Vercel env vars)
+    const body = await readJsonObject(request, 32 * 1024)
+    if (body instanceof NextResponse) return body
+    const name = typeof body.name === 'string' ? body.name.trim().slice(0, 200) : ''
+    const email = typeof body.email === 'string' ? body.email.trim().toLowerCase().slice(0, 320) : ''
+    const message = typeof body.message === 'string' ? body.message.trim().slice(0, 20_000) : ''
+
     const expectedSecret = process.env.WEBSITE_WEBHOOK_SECRET
-    if (!expectedSecret || secret !== expectedSecret) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401, headers: CORS_HEADERS })
+    // The header is the secure server-to-server form. Body support is retained
+    // temporarily for the existing website integration and should be removed once
+    // frasermackie.com has moved its call behind a server-side handler.
+    const legacyBodySecret = typeof body.secret === 'string' ? body.secret : ''
+    const providedSecret = request.headers.get('x-webhook-secret') ?? legacyBodySecret
+    if (!expectedSecret || !providedSecret || !secretsMatch(providedSecret, expectedSecret)) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401, headers })
     }
 
-    if (!name?.trim() || !message?.trim()) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
+    if (!name || !message) {
+      return NextResponse.json({ error: 'Missing required fields' }, { status: 400, headers })
     }
 
-    const fullName = (name as string).trim()
+    const fullName = name
     const nameParts = fullName.split(/\s+/)
     const firstName = nameParts[0]
     const lastName = nameParts.slice(1).join(' ') || ''
-    const cleanEmail = email?.trim().toLowerCase() || null
+    const cleanEmail = email || null
 
     // Find the admin user to assign the contact to
     const adminUser = await prisma.user.findFirst({ where: { role: 'ADMIN', isActive: true } })
     if (!adminUser) {
-      return NextResponse.json({ error: 'No admin user found' }, { status: 500, headers: CORS_HEADERS })
+      return NextResponse.json({ error: 'No admin user found' }, { status: 500, headers })
     }
 
     // Find existing contact by email, or create new
     let contact = cleanEmail
-      ? await prisma.contact.findFirst({ where: { email: cleanEmail } })
+      ? await prisma.contact.findFirst({
+          where: { email: cleanEmail, user: { workspaceId: adminUser.workspaceId } },
+        })
       : null
 
     if (!contact) {
@@ -68,15 +115,15 @@ export async function POST(request: NextRequest) {
         userId: adminUser.id,
         type: 'EMAIL',
         subject: `Website enquiry — ${fullName}`,
-        summary: (message as string).trim(),
+        summary: message,
         happenedAt: new Date(),
         contactId: contact.id,
       },
     })
 
-    return NextResponse.json({ success: true }, { headers: CORS_HEADERS })
+    return NextResponse.json({ success: true }, { headers })
   } catch (error) {
     console.error('[WEBSITE_WEBHOOK_ERROR]', error)
-    return NextResponse.json({ error: 'Internal error' }, { status: 500, headers: CORS_HEADERS })
+    return NextResponse.json({ error: 'Internal error' }, { status: 500, headers })
   }
 }

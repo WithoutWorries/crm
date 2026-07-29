@@ -1,14 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireSession } from '@/lib/session'
+import { readJsonObject } from '@/lib/request'
 
 // POST: create a quote. Accepts either supplierId (existing) or supplierName (creates on the fly).
 export async function POST(request: NextRequest) {
-  const session = requireSession()
+  const session = await requireSession()
   if (session instanceof NextResponse) return session
 
   try {
-    const body = await request.json()
+    const body = await readJsonObject(request)
+    if (body instanceof NextResponse) return body
 
     if (!body.projectId) {
       return NextResponse.json({ error: 'projectId is required' }, { status: 400 })

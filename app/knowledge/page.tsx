@@ -2,9 +2,24 @@
 
 import { FormEvent, KeyboardEvent, useCallback, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
-import { ArrowRight, BookOpen, Loader2, Plus, Search, X } from 'lucide-react'
+import {
+  AlertTriangle,
+  ArrowRight,
+  BookOpen,
+  CheckCircle2,
+  CloudOff,
+  HardDrive,
+  Loader2,
+  Plus,
+  Search,
+  X,
+} from 'lucide-react'
 import { KNOWLEDGE_TYPE_LABELS } from '@/lib/knowledge'
 import type { KnowledgeType } from '@prisma/client'
+import {
+  useOfflineKnowledgeQueue,
+  type SyncedKnowledgeNote,
+} from '@/hooks/use-offline-knowledge-queue'
 
 interface KnowledgeNote {
   id: string
@@ -12,6 +27,7 @@ interface KnowledgeNote {
   content: string
   knowledgeType: KnowledgeType | null
   sourceUrl: string | null
+  capturedAt: string | null
   createdAt: string
   updatedAt: string
 }
@@ -42,9 +58,27 @@ export default function KnowledgePage() {
   const [query, setQuery] = useState('')
   const [notes, setNotes] = useState<KnowledgeNote[]>([])
   const [loading, setLoading] = useState(true)
-  const [capture, setCapture] = useState('')
-  const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+
+  const handleSyncedNote = useCallback(
+    (note: SyncedKnowledgeNote) => {
+      if (!query) {
+        setNotes((current) => [note, ...current.filter((item) => item.id !== note.id)])
+      }
+    },
+    [query]
+  )
+
+  const {
+    draft: capture,
+    setDraft: setCapture,
+    queueCapture,
+    pendingCount,
+    isOnline,
+    queueState,
+    statusDetail,
+    ready: offlineQueueReady,
+  } = useOfflineKnowledgeQueue(handleSyncedNote)
 
   const loadNotes = useCallback(async (searchQuery: string) => {
     setLoading(true)
@@ -57,7 +91,13 @@ export default function KnowledgePage() {
       if (!response.ok) throw new Error(data.error || 'Unable to load notes')
       setNotes(data.notes)
     } catch (loadError) {
-      setError(loadError instanceof Error ? loadError.message : 'Unable to load notes')
+      setError(
+        !navigator.onLine
+          ? 'Offline — recent notes and search will return when connected. Capture remains available.'
+          : loadError instanceof Error
+            ? loadError.message
+            : 'Unable to load notes'
+      )
     } finally {
       setLoading(false)
     }
@@ -90,30 +130,11 @@ export default function KnowledgePage() {
   }, [])
 
   const saveCapture = async () => {
-    if (!capture.trim() || saving) return
-    setSaving(true)
+    if (!capture.trim() || queueState === 'SAVING_LOCAL') return
     setError('')
-
-    try {
-      const response = await fetch('/api/knowledge', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: capture }),
-      })
-      const data = await response.json()
-      if (!response.ok) throw new Error(data.error || 'Unable to save note')
-
-      setCapture('')
-      if (query) {
-        setQuery('')
-      } else {
-        setNotes((current) => [data, ...current.filter((note) => note.id !== data.id)])
-      }
+    const queued = await queueCapture()
+    if (queued) {
       captureRef.current?.focus()
-    } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : 'Unable to save note')
-    } finally {
-      setSaving(false)
     }
   }
 
@@ -249,7 +270,7 @@ export default function KnowledgePage() {
                         {KNOWLEDGE_TYPE_LABELS[note.knowledgeType]}
                       </span>
                     )}
-                    <span>{formatNoteDate(note.updatedAt)}</span>
+                    <span>{formatNoteDate(note.capturedAt ?? note.updatedAt)}</span>
                     <ArrowRight className="h-3.5 w-3.5 opacity-0 transition group-hover:translate-x-0.5 group-hover:opacity-100" />
                   </div>
                 </Link>
@@ -264,6 +285,43 @@ export default function KnowledgePage() {
             <p className="mt-1 text-xs leading-5 text-slate-500 dark:text-fmea-dim">
               What would be annoying to rediscover?
             </p>
+            <div
+              className={`mt-4 rounded-xl border px-3 py-2.5 ${
+                queueState === 'ERROR'
+                  ? 'border-rose-200 bg-rose-50 dark:border-rose-900/60 dark:bg-rose-950/30'
+                  : !isOnline || queueState === 'PENDING' || queueState === 'AUTH_REQUIRED'
+                    ? 'border-amber-200 bg-amber-50 dark:border-amber-900/60 dark:bg-amber-950/25'
+                    : 'border-emerald-200 bg-emerald-50 dark:border-emerald-900/60 dark:bg-emerald-950/25'
+              }`}
+              role="status"
+              aria-live="polite"
+            >
+              <div className="flex items-start gap-2.5">
+                {queueState === 'INITIALISING' ||
+                queueState === 'SAVING_LOCAL' ||
+                queueState === 'SYNCING' ? (
+                  <Loader2 className="mt-0.5 h-4 w-4 shrink-0 animate-spin text-cyan-700 dark:text-fmea-accent" />
+                ) : queueState === 'ERROR' ? (
+                  <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-rose-600 dark:text-rose-300" />
+                ) : !isOnline ? (
+                  <CloudOff className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-300" />
+                ) : pendingCount ? (
+                  <HardDrive className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-300" />
+                ) : (
+                  <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-300" />
+                )}
+                <div className="min-w-0 flex-1">
+                  <p className="text-[11px] font-semibold leading-4 text-slate-700 dark:text-slate-200">
+                    {statusDetail}
+                  </p>
+                  <p className="mt-1 text-[10px] leading-4 text-slate-500 dark:text-fmea-dim">
+                    {pendingCount
+                      ? `${pendingCount} ${pendingCount === 1 ? 'note' : 'notes'} awaiting server confirmation`
+                      : 'Drafts are retained on this device until submitted'}
+                  </p>
+                </div>
+              </div>
+            </div>
             <textarea
               id="capture"
               ref={captureRef}
@@ -279,11 +337,23 @@ export default function KnowledgePage() {
               <button
                 type="button"
                 onClick={saveCapture}
-                disabled={!capture.trim() || saving}
+                disabled={
+                  !capture.trim() || queueState === 'SAVING_LOCAL' || !offlineQueueReady
+                }
                 className="inline-flex items-center gap-2 rounded-lg bg-cyan-700 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-cyan-800 disabled:cursor-not-allowed disabled:opacity-40 dark:bg-fmea-accent dark:text-fmea-bg dark:hover:bg-cyan-300"
               >
-                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-                {saving ? 'Saving…' : 'Save'}
+                {queueState === 'SAVING_LOCAL' ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : isOnline ? (
+                  <Plus className="h-4 w-4" />
+                ) : (
+                  <HardDrive className="h-4 w-4" />
+                )}
+                {queueState === 'SAVING_LOCAL'
+                  ? 'Securing…'
+                  : isOnline
+                    ? 'Save'
+                    : 'Save locally'}
               </button>
             </div>
           </div>

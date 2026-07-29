@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireSession } from '@/lib/session'
+import { readJsonObject } from '@/lib/request'
 
 export async function GET(request: NextRequest) {
-  const session = requireSession()
+  const session = await requireSession()
   if (session instanceof NextResponse) return session
 
   try {
@@ -14,6 +15,8 @@ export async function GET(request: NextRequest) {
 
     const notes = await prisma.note.findMany({
       where: {
+        user: { workspaceId: session.workspaceId },
+        isKnowledge: false,
         ...(contactId ? { contactId } : {}),
         ...(companyId ? { companyId } : {}),
         ...(opportunityId ? { opportunityId } : {}),
@@ -29,21 +32,51 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const session = requireSession()
+  const session = await requireSession()
   if (session instanceof NextResponse) return session
 
   try {
-    const body = await request.json()
+    const body = await readJsonObject(request)
+    if (body instanceof NextResponse) return body
     const { content, contactId, companyId, opportunityId } = body
 
     if (!content?.trim()) {
       return NextResponse.json({ error: 'Content is required' }, { status: 400 })
     }
 
+    const references = await Promise.all([
+      companyId
+        ? prisma.company.findFirst({
+            where: { id: companyId, user: { workspaceId: session.workspaceId } },
+            select: { id: true },
+          })
+        : null,
+      contactId
+        ? prisma.contact.findFirst({
+            where: { id: contactId, user: { workspaceId: session.workspaceId } },
+            select: { id: true },
+          })
+        : null,
+      opportunityId
+        ? prisma.opportunity.findFirst({
+            where: { id: opportunityId, user: { workspaceId: session.workspaceId } },
+            select: { id: true },
+          })
+        : null,
+    ])
+    if (
+      (companyId && !references[0]) ||
+      (contactId && !references[1]) ||
+      (opportunityId && !references[2])
+    ) {
+      return NextResponse.json({ error: 'Related record not found' }, { status: 400 })
+    }
+
     const note = await prisma.note.create({
       data: {
         content: content.trim(),
         userId: session.userId,
+        isKnowledge: false,
         ...(contactId ? { contactId } : {}),
         ...(companyId ? { companyId } : {}),
         ...(opportunityId ? { opportunityId } : {}),

@@ -42,7 +42,7 @@ export default function AdminUsersPage() {
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `solocrm-backup-${new Date().toISOString().slice(0, 10)}.json`
+      a.download = `reference-backup-${new Date().toISOString().slice(0, 10)}.json`
       document.body.appendChild(a)
       a.click()
       a.remove()
@@ -143,7 +143,7 @@ export default function AdminUsersPage() {
             onClick={handleDownloadBackup}
             disabled={downloading}
             className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-100 dark:bg-fmea-bg3 text-slate-700 dark:text-fmea-text text-sm font-medium hover:bg-slate-200 dark:hover:bg-fmea-border transition-colors disabled:opacity-50"
-            title="Download full database backup as JSON"
+            title="Download a workspace backup as JSON"
           >
             <Download className="h-4 w-4" />
             {downloading ? 'Preparing…' : 'Backup'}

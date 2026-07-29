@@ -11,6 +11,7 @@ import {
   validateKnowledgeContent,
 } from '@/lib/knowledge'
 import { prisma } from '@/lib/prisma'
+import { readJsonObject } from '@/lib/request'
 import { requireActiveSession } from '@/lib/session'
 
 const DEFAULT_LIMIT = 30
@@ -22,10 +23,22 @@ interface KnowledgeSearchRow {
   content: string
   knowledgeType: KnowledgeType | null
   sourceUrl: string | null
+  capturedAt: Date | null
   createdAt: Date
   updatedAt: Date
   rank: number
 }
+
+const knowledgeSelect = {
+  id: true,
+  title: true,
+  content: true,
+  knowledgeType: true,
+  sourceUrl: true,
+  capturedAt: true,
+  createdAt: true,
+  updatedAt: true,
+} as const
 
 function parseLimit(value: string | null): number {
   const parsed = Number.parseInt(value ?? '', 10)
@@ -50,15 +63,7 @@ export async function GET(request: NextRequest) {
           isKnowledge: true,
           ...(knowledgeType ? { knowledgeType } : {}),
         },
-        select: {
-          id: true,
-          title: true,
-          content: true,
-          knowledgeType: true,
-          sourceUrl: true,
-          createdAt: true,
-          updatedAt: true,
-        },
+        select: knowledgeSelect,
         orderBy: { updatedAt: 'desc' },
         take: limit,
       })
@@ -78,6 +83,7 @@ export async function GET(request: NextRequest) {
         "content",
         "knowledgeType",
         "sourceUrl",
+        "capturedAt",
         "createdAt",
         "updatedAt",
         ts_rank_cd(
@@ -115,7 +121,8 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const body = await request.json()
+    const body = await readJsonObject(request, 128 * 1024)
+    if (body instanceof NextResponse) return body
     const content = validateKnowledgeContent(body.content)
     if (!content) {
       return NextResponse.json(
@@ -132,26 +139,88 @@ export async function POST(request: NextRequest) {
 
     const knowledgeType = isKnowledgeType(body.knowledgeType) ? body.knowledgeType : null
     const title = suppliedTitle ?? deriveKnowledgeTitle(content)
+    const ownerUserId =
+      typeof body.ownerUserId === 'string' ? body.ownerUserId.trim() : null
+    if (ownerUserId && ownerUserId !== session.userId) {
+      return NextResponse.json({ error: 'Capture owner does not match this session' }, { status: 403 })
+    }
 
-    const note = await prisma.note.create({
-      data: {
-        userId: session.userId,
-        title,
-        content,
-        knowledgeType,
-        sourceUrl,
-        isKnowledge: true,
-      },
-      select: {
-        id: true,
-        title: true,
-        content: true,
-        knowledgeType: true,
-        sourceUrl: true,
-        createdAt: true,
-        updatedAt: true,
-      },
-    })
+    const clientCaptureId =
+      typeof body.clientCaptureId === 'string' ? body.clientCaptureId.trim().toLowerCase() : null
+    if (
+      clientCaptureId &&
+      !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(
+        clientCaptureId
+      )
+    ) {
+      return NextResponse.json({ error: 'Invalid capture identifier' }, { status: 400 })
+    }
+
+    let capturedAt = new Date()
+    if (body.clientCreatedAt !== undefined) {
+      if (typeof body.clientCreatedAt !== 'string') {
+        return NextResponse.json({ error: 'Invalid capture date' }, { status: 400 })
+      }
+      const suppliedDate = new Date(body.clientCreatedAt)
+      const earliestAllowed = new Date('2000-01-01T00:00:00.000Z')
+      const latestAllowed = new Date(Date.now() + 5 * 60 * 1000)
+      if (
+        Number.isNaN(suppliedDate.getTime()) ||
+        suppliedDate < earliestAllowed ||
+        suppliedDate > latestAllowed
+      ) {
+        return NextResponse.json({ error: 'Invalid capture date' }, { status: 400 })
+      }
+      capturedAt = suppliedDate
+    }
+
+    if (clientCaptureId) {
+      const existing = await prisma.note.findUnique({
+        where: {
+          userId_clientCaptureId: {
+            userId: session.userId,
+            clientCaptureId,
+          },
+        },
+        select: knowledgeSelect,
+      })
+      if (existing) return NextResponse.json(existing)
+    }
+
+    let note
+    try {
+      note = await prisma.note.create({
+        data: {
+          userId: session.userId,
+          clientCaptureId,
+          title,
+          content,
+          knowledgeType,
+          sourceUrl,
+          isKnowledge: true,
+          capturedAt,
+        },
+        select: knowledgeSelect,
+      })
+    } catch (error) {
+      // Two app windows can retry the same local capture simultaneously. The
+      // compound unique key makes that safe; return the record that won.
+      if (clientCaptureId && error instanceof Prisma.PrismaClientKnownRequestError) {
+        if (error.code === 'P2002') {
+          const existing = await prisma.note.findUnique({
+            where: {
+              userId_clientCaptureId: {
+                userId: session.userId,
+                clientCaptureId,
+              },
+            },
+            select: knowledgeSelect,
+          })
+          if (existing) return NextResponse.json(existing)
+        }
+      }
+      throw error
+    }
 
     await logAudit(session.userId, 'CREATE', 'Knowledge', note.id, note.title ?? undefined)
     return NextResponse.json(note, { status: 201 })

@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { requireSession } from '@/lib/session'
 
 export async function GET(_request: NextRequest) {
-  const session = requireSession()
+  const session = await requireSession()
   if (session instanceof NextResponse) return session
 
   const user = await prisma.user.findUnique({
@@ -15,7 +15,10 @@ export async function GET(_request: NextRequest) {
 
   // Show recent audit log entries by OTHER users
   const recent = await prisma.auditLog.findMany({
-    where: { userId: { not: session.userId } },
+    where: {
+      userId: { not: session.userId },
+      user: { workspaceId: session.workspaceId },
+    },
     include: { user: { select: { name: true, email: true } } },
     orderBy: { createdAt: 'desc' },
     take: 20,
@@ -28,7 +31,7 @@ export async function GET(_request: NextRequest) {
 
 export async function POST(_request: NextRequest) {
   // Mark all as read
-  const session = requireSession()
+  const session = await requireSession()
   if (session instanceof NextResponse) return session
 
   await prisma.user.update({

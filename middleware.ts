@@ -11,15 +11,16 @@ const PUBLIC_PATHS = [
   '/api/cron/daily-digest',
 ]
 
-/** Verify an expiring HMAC-SHA256 session token using Edge-compatible Web Crypto. */
+/** Verify an expiring HMAC-SHA256 session cookie using Edge-compatible Web Crypto. */
 async function verifySession(token: string, secret: string): Promise<{ role: string } | null> {
   const parts = token.split('|')
-  if (parts.length !== 4) return null
-  const [userId, role, expiresAtValue, sig] = parts
+  if (parts.length !== 5) return null
+  const [sessionId, tokenSecret, role, expiresAtValue, sig] = parts
   const expiresAt = Number.parseInt(expiresAtValue, 10)
   if (
-    !userId ||
-    !role ||
+    !sessionId ||
+    !/^[a-f0-9]{64}$/i.test(tokenSecret) ||
+    (role !== 'ADMIN' && role !== 'MEMBER') ||
     !sig ||
     !Number.isFinite(expiresAt) ||
     expiresAt <= Math.floor(Date.now() / 1000) ||
@@ -42,7 +43,7 @@ async function verifySession(token: string, secret: string): Promise<{ role: str
     'HMAC',
     key,
     sigBytes,
-    enc.encode(`${userId}|${role}|${expiresAt}`)
+    enc.encode(`${sessionId}|${tokenSecret}|${role}|${expiresAt}`)
   )
   return valid ? { role } : null
 }
@@ -53,9 +54,39 @@ export async function middleware(request: NextRequest) {
   const isStaticAsset =
     pathname.startsWith('/_next') ||
     pathname.startsWith('/favicon') ||
-    pathname === '/reference-icon.png'
+    pathname === '/reference-icon.png' ||
+    pathname === '/manifest.webmanifest' ||
+    pathname === '/sw.js'
 
-  if (isPublic || isStaticAsset) return NextResponse.next()
+  if (isStaticAsset) return NextResponse.next()
+
+  if (!['GET', 'HEAD', 'OPTIONS'].includes(request.method)) {
+    const contentLength = Number.parseInt(request.headers.get('content-length') ?? '0', 10)
+    if (Number.isFinite(contentLength) && contentLength > 1024 * 1024) {
+      return NextResponse.json({ error: 'Request body too large' }, { status: 413 })
+    }
+  }
+
+  // Reject cross-site state changes. Public integrations authenticate separately.
+  if (
+    !['GET', 'HEAD', 'OPTIONS'].includes(request.method) &&
+    !pathname.startsWith('/api/webhook/')
+  ) {
+    const origin = request.headers.get('origin')
+    const fetchSite = request.headers.get('sec-fetch-site')
+    if (
+      (origin && origin !== request.nextUrl.origin) ||
+      (fetchSite && !['same-origin', 'same-site', 'none'].includes(fetchSite))
+    ) {
+      return NextResponse.json({ error: 'Cross-site request rejected' }, { status: 403 })
+    }
+  }
+
+  if (isPublic) {
+    const response = NextResponse.next()
+    if (pathname.startsWith('/api/')) response.headers.set('Cache-Control', 'no-store')
+    return response
+  }
 
   const token = request.cookies.get(COOKIE_NAME)?.value
   const secret = process.env.SESSION_SECRET
@@ -70,13 +101,19 @@ export async function middleware(request: NextRequest) {
   }
 
   // Admin-only routes
-  if (pathname.startsWith('/admin') || pathname.startsWith('/api/admin')) {
+  if (
+    pathname.startsWith('/admin') ||
+    pathname.startsWith('/api/admin') ||
+    pathname.startsWith('/development')
+  ) {
     if (session.role !== 'ADMIN') {
       return NextResponse.redirect(new URL('/dashboard', request.url))
     }
   }
 
-  return NextResponse.next()
+  const response = NextResponse.next()
+  if (pathname.startsWith('/api/')) response.headers.set('Cache-Control', 'no-store')
+  return response
 }
 
 export const config = {

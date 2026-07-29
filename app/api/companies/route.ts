@@ -2,21 +2,25 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireSession } from '@/lib/session'
 import { logAudit } from '@/lib/audit'
+import { readJsonObject } from '@/lib/request'
 
 export async function GET(request: NextRequest) {
-  const session = requireSession()
+  const session = await requireSession()
   if (session instanceof NextResponse) return session
 
   try {
     const search = request.nextUrl.searchParams.get('search') || ''
     const companies = await prisma.company.findMany({
-      where: search ? {
-        OR: [
-          { name: { contains: search, mode: 'insensitive' } },
-          { city: { contains: search, mode: 'insensitive' } },
-          { country: { contains: search, mode: 'insensitive' } },
-        ],
-      } : undefined,
+      where: {
+        user: { workspaceId: session.workspaceId },
+        ...(search ? {
+          OR: [
+            { name: { contains: search, mode: 'insensitive' } },
+            { city: { contains: search, mode: 'insensitive' } },
+            { country: { contains: search, mode: 'insensitive' } },
+          ],
+        } : {}),
+      },
       include: { _count: { select: { contacts: true, opportunities: true } } },
       orderBy: { name: 'asc' },
     })
@@ -28,11 +32,12 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const session = requireSession()
+  const session = await requireSession()
   if (session instanceof NextResponse) return session
 
   try {
-    const body = await request.json()
+    const body = await readJsonObject(request)
+    if (body instanceof NextResponse) return body
     const company = await prisma.company.create({
       data: {
         userId: session.userId,

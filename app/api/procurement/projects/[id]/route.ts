@@ -1,14 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireSession } from '@/lib/session'
+import { readJsonObject } from '@/lib/request'
 
-export async function GET(_request: NextRequest, { params }: { params: { id: string } }) {
-  const session = requireSession()
+export async function GET(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+  const session = await requireSession()
   if (session instanceof NextResponse) return session
 
   try {
     const project = await prisma.procurementProject.findFirst({
-      where: { id: params.id, userId: session.userId },
+      where: { id, userId: session.userId },
       include: {
         quotes: {
           include: { supplier: true },
@@ -24,19 +26,21 @@ export async function GET(_request: NextRequest, { params }: { params: { id: str
   }
 }
 
-export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
-  const session = requireSession()
+export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+  const session = await requireSession()
   if (session instanceof NextResponse) return session
 
   try {
     const project = await prisma.procurementProject.findFirst({
-      where: { id: params.id, userId: session.userId },
+      where: { id, userId: session.userId },
     })
     if (!project) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
-    const body = await request.json()
+    const body = await readJsonObject(request)
+    if (body instanceof NextResponse) return body
     const updated = await prisma.procurementProject.update({
-      where: { id: params.id },
+      where: { id },
       data: {
         title:           body.title           ?? project.title,
         category:        body.category        ?? project.category,
@@ -55,16 +59,17 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
   }
 }
 
-export async function DELETE(_request: NextRequest, { params }: { params: { id: string } }) {
-  const session = requireSession()
+export async function DELETE(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+  const session = await requireSession()
   if (session instanceof NextResponse) return session
 
   try {
     const project = await prisma.procurementProject.findFirst({
-      where: { id: params.id, userId: session.userId },
+      where: { id, userId: session.userId },
     })
     if (!project) return NextResponse.json({ error: 'Not found' }, { status: 404 })
-    await prisma.procurementProject.delete({ where: { id: params.id } })
+    await prisma.procurementProject.delete({ where: { id } })
     return NextResponse.json({ success: true })
   } catch (err) {
     console.error('[PROCUREMENT_PROJECT_DELETE]', err)

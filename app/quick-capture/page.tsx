@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import {
   Zap, ArrowLeft, ArrowRight, Check, Loader2, AlertCircle,
   Calculator, Briefcase, Users,
@@ -497,7 +498,7 @@ export default function QuickCapturePage() {
           <div className="bg-white dark:bg-fmea-bg2 rounded-xl border-2 border-amber-400 dark:border-amber-500/50 p-5">
             <label className={amberLabelCls}>Attach to procurement project</label>
             {projects.length === 0 ? (
-              <p className="text-sm text-slate-500 dark:text-fmea-dim">No open projects found. <a href="/procurement" className="text-amber-500 hover:underline">Create one first.</a></p>
+              <p className="text-sm text-slate-500 dark:text-fmea-dim">No open projects found. <Link href="/procurement" className="text-amber-500 hover:underline">Create one first.</Link></p>
             ) : (
               <select value={selectedProjectId} onChange={e => setSelectedProjectId(e.target.value)} className={amberInputCls}>
                 {projects.map(p => (

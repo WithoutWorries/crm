@@ -2,14 +2,17 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireSession } from '@/lib/session'
 import { logAudit } from '@/lib/audit'
+import { workspaceReferencesExist } from '@/lib/access'
+import { readJsonObject } from '@/lib/request'
 
-export async function GET(_request: NextRequest, { params }: { params: { id: string } }) {
-  const session = requireSession()
+export async function GET(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+  const session = await requireSession()
   if (session instanceof NextResponse) return session
 
   try {
-    const task = await prisma.task.findUnique({
-      where: { id: params.id },
+    const task = await prisma.task.findFirst({
+      where: { id, user: { workspaceId: session.workspaceId } },
       include: { contact: true, opportunity: true, company: true },
     })
     if (!task) return NextResponse.json({ error: 'Not found' }, { status: 404 })
@@ -20,17 +23,34 @@ export async function GET(_request: NextRequest, { params }: { params: { id: str
   }
 }
 
-export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
-  const session = requireSession()
+export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+  const session = await requireSession()
   if (session instanceof NextResponse) return session
 
   try {
-    const task = await prisma.task.findUnique({ where: { id: params.id } })
+    const task = await prisma.task.findFirst({
+      where: { id, user: { workspaceId: session.workspaceId } },
+    })
     if (!task) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
-    const body = await request.json()
+    const body = await readJsonObject(request)
+    if (body instanceof NextResponse) return body
+    const contactId = body.contactId !== undefined ? body.contactId : task.contactId
+    const opportunityId =
+      body.opportunityId !== undefined ? body.opportunityId : task.opportunityId
+    const companyId = body.companyId !== undefined ? body.companyId : task.companyId
+    if (
+      !(await workspaceReferencesExist(session.workspaceId, {
+        contactId,
+        opportunityId,
+        companyId,
+      }))
+    ) {
+      return NextResponse.json({ error: 'Related record not found' }, { status: 400 })
+    }
     const updated = await prisma.task.update({
-      where: { id: params.id },
+      where: { id },
       data: {
         title: body.title || task.title,
         description: body.description !== undefined ? body.description : task.description,
@@ -38,9 +58,9 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
         priority: body.priority || task.priority,
         status: body.status || task.status,
         completedAt: body.status === 'COMPLETED' ? new Date() : task.completedAt,
-        contactId: body.contactId !== undefined ? body.contactId : task.contactId,
-        opportunityId: body.opportunityId !== undefined ? body.opportunityId : task.opportunityId,
-        companyId: body.companyId !== undefined ? body.companyId : task.companyId,
+        contactId,
+        opportunityId,
+        companyId,
       },
     })
     await logAudit(session.userId, 'UPDATE', 'Task', updated.id, updated.title)
@@ -51,15 +71,18 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
   }
 }
 
-export async function DELETE(_request: NextRequest, { params }: { params: { id: string } }) {
-  const session = requireSession()
+export async function DELETE(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+  const session = await requireSession()
   if (session instanceof NextResponse) return session
   if (session.role !== 'ADMIN') return NextResponse.json({ error: 'Only admins can delete records' }, { status: 403 })
 
   try {
-    const task = await prisma.task.findUnique({ where: { id: params.id } })
+    const task = await prisma.task.findFirst({
+      where: { id, user: { workspaceId: session.workspaceId } },
+    })
     if (!task) return NextResponse.json({ error: 'Not found' }, { status: 404 })
-    await prisma.task.delete({ where: { id: params.id } })
+    await prisma.task.delete({ where: { id } })
     await logAudit(session.userId, 'DELETE', 'Task', task.id, task.title)
     return NextResponse.json({ success: true })
   } catch (error) {

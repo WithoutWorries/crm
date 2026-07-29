@@ -15,6 +15,7 @@ export async function GET(request: NextRequest) {
 
     const [records, total] = await Promise.all([
       prisma.loginRecord.findMany({
+        where: { user: { workspaceId: session.workspaceId } },
         orderBy: { loginAt: 'desc' },
         skip,
         take: limit,
@@ -22,7 +23,7 @@ export async function GET(request: NextRequest) {
           user: { select: { id: true, name: true, email: true, role: true } },
         },
       }),
-      prisma.loginRecord.count(),
+      prisma.loginRecord.count({ where: { user: { workspaceId: session.workspaceId } } }),
     ])
 
     return NextResponse.json({ records, total, page, limit })

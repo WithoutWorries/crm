@@ -1,9 +1,11 @@
 import { NextResponse } from 'next/server'
-import { COOKIE_NAME } from '@/lib/session'
+import { clearSessionCookie, getSession, revokeSession } from '@/lib/session'
 
 export async function POST() {
+  const session = await getSession()
+  if (session) await revokeSession(session.sessionId)
   const response = NextResponse.json({ success: true })
-  response.cookies.set(COOKIE_NAME, '', { expires: new Date(0), path: '/' })
+  clearSessionCookie(response)
   response.cookies.set('solo-crm-auth', '', { expires: new Date(0), path: '/' })
   return response
 }

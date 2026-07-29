@@ -3,9 +3,10 @@ import { Decimal } from '@prisma/client/runtime/library'
 import { prisma } from '@/lib/prisma'
 import { requireSession } from '@/lib/session'
 import { logAudit } from '@/lib/audit'
+import { readJsonObject } from '@/lib/request'
 
 export async function GET(request: NextRequest) {
-  const session = requireSession()
+  const session = await requireSession()
   if (session instanceof NextResponse) return session
 
   try {
@@ -16,6 +17,7 @@ export async function GET(request: NextRequest) {
     const opportunities = await prisma.opportunity.findMany({
       where: {
         AND: [
+          { user: { workspaceId: session.workspaceId } },
           search ? {
             OR: [
               { title: { contains: search, mode: 'insensitive' } },
@@ -43,11 +45,26 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const session = requireSession()
+  const session = await requireSession()
   if (session instanceof NextResponse) return session
 
   try {
-    const body = await request.json()
+    const body = await readJsonObject(request)
+    if (body instanceof NextResponse) return body
+    if (body.companyId) {
+      const company = await prisma.company.findFirst({
+        where: { id: body.companyId, user: { workspaceId: session.workspaceId } },
+        select: { id: true },
+      })
+      if (!company) return NextResponse.json({ error: 'Company not found' }, { status: 400 })
+    }
+    if (body.primaryContactId) {
+      const contact = await prisma.contact.findFirst({
+        where: { id: body.primaryContactId, user: { workspaceId: session.workspaceId } },
+        select: { id: true },
+      })
+      if (!contact) return NextResponse.json({ error: 'Contact not found' }, { status: 400 })
+    }
     const opportunity = await prisma.opportunity.create({
       data: {
         userId: session.userId,

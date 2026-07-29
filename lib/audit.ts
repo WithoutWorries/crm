@@ -13,7 +13,9 @@ export async function logAudit(
     await prisma.auditLog.create({
       data: { userId, action, entity, entityId, entityName: entityName ?? null },
     })
-  } catch {
-    // Audit logging failure should never break the main operation
+  } catch (error) {
+    // Existing mutations are not yet transactional with their audit record. Make
+    // failures visible until Stage 3 introduces controlled engineering revisions.
+    console.error('[AUDIT_LOG_ERROR]', { userId, action, entity, entityId, error })
   }
 }

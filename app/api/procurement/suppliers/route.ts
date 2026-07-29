@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireSession } from '@/lib/session'
+import { readJsonObject } from '@/lib/request'
 
 export async function GET(_request: NextRequest) {
-  const session = requireSession()
+  const session = await requireSession()
   if (session instanceof NextResponse) return session
 
   try {
@@ -19,11 +20,12 @@ export async function GET(_request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const session = requireSession()
+  const session = await requireSession()
   if (session instanceof NextResponse) return session
 
   try {
-    const body = await request.json()
+    const body = await readJsonObject(request)
+    if (body instanceof NextResponse) return body
     // Upsert: reuse existing supplier with same name rather than error
     const supplier = await prisma.procurementSupplier.upsert({
       where: { userId_name: { userId: session.userId, name: body.name.trim() } },

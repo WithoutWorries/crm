@@ -8,7 +8,7 @@ function generateToken(): string {
 }
 
 export async function GET() {
-  const session = requireSession()
+  const session = await requireSession()
   if (session instanceof NextResponse) return session
 
   const user = await prisma.user.findUnique({
@@ -30,7 +30,7 @@ export async function GET() {
 }
 
 export async function POST() {
-  const session = requireSession()
+  const session = await requireSession()
   if (session instanceof NextResponse) return session
 
   const token = generateToken()

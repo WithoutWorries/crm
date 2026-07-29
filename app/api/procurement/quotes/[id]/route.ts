@@ -1,23 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireSession } from '@/lib/session'
+import { readJsonObject } from '@/lib/request'
 
-export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
-  const session = requireSession()
+export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+  const session = await requireSession()
   if (session instanceof NextResponse) return session
 
   try {
     const quote = await prisma.procurementQuote.findFirst({
-      where: { id: params.id },
+      where: { id },
       include: { project: { select: { userId: true } } },
     })
     if (!quote || quote.project.userId !== session.userId) {
       return NextResponse.json({ error: 'Not found' }, { status: 404 })
     }
 
-    const body = await request.json()
+    const body = await readJsonObject(request)
+    if (body instanceof NextResponse) return body
     const updated = await prisma.procurementQuote.update({
-      where: { id: params.id },
+      where: { id },
       data: {
         status:          body.status          ?? quote.status,
         feeAmount:       body.feeAmount        !== undefined ? body.feeAmount        : quote.feeAmount,
@@ -39,19 +42,20 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
   }
 }
 
-export async function DELETE(_request: NextRequest, { params }: { params: { id: string } }) {
-  const session = requireSession()
+export async function DELETE(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+  const session = await requireSession()
   if (session instanceof NextResponse) return session
 
   try {
     const quote = await prisma.procurementQuote.findFirst({
-      where: { id: params.id },
+      where: { id },
       include: { project: { select: { userId: true } } },
     })
     if (!quote || quote.project.userId !== session.userId) {
       return NextResponse.json({ error: 'Not found' }, { status: 404 })
     }
-    await prisma.procurementQuote.delete({ where: { id: params.id } })
+    await prisma.procurementQuote.delete({ where: { id } })
     return NextResponse.json({ success: true })
   } catch (err) {
     console.error('[PROCUREMENT_QUOTE_DELETE]', err)

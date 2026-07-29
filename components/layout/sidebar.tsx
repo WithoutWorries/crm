@@ -7,6 +7,7 @@ import { usePathname } from 'next/navigation'
 import { ChevronLeft, ChevronRight, Clock, LogOut, Shield } from 'lucide-react'
 import { NAVIGATION_SECTIONS } from '@/components/layout/navigation'
 import { cn } from '@/lib/utils'
+import { clearLastKnowledgeUser } from '@/lib/offline-knowledge'
 
 interface Me {
   id: string
@@ -25,12 +26,26 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
   const [me, setMe] = useState<Me | null>(null)
 
   useEffect(() => {
-    fetch('/api/auth/me').then(r => r.ok ? r.json() : null).then(d => { if (d) setMe(d) })
+    fetch('/api/auth/me')
+      .then((response) => (response.ok ? response.json() : null))
+      .then((data) => {
+        if (data) setMe(data)
+      })
+      .catch(() => {
+        // The installed app may be running offline; identity is retained by
+        // the user-scoped Knowledge queue rather than inferred here.
+      })
   }, [])
 
   const handleLogout = async () => {
-    await fetch('/api/auth/logout', { method: 'POST' })
-    window.location.href = '/login'
+    await clearLastKnowledgeUser().catch((error) =>
+      console.error('[OFFLINE_IDENTITY_CLEAR]', error)
+    )
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' })
+    } finally {
+      window.location.href = '/login'
+    }
   }
 
   const displayName = me?.name || me?.email?.split('@')[0] || '…'
@@ -84,7 +99,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
 
       <nav className={cn('flex-1 overflow-y-auto py-5', collapsed ? 'px-2' : 'px-3')}>
         <div className="space-y-6">
-          {NAVIGATION_SECTIONS.map((section) => (
+          {NAVIGATION_SECTIONS.filter((section) => !section.adminOnly || me?.role === 'ADMIN').map((section) => (
             <section
               key={section.label}
               aria-label={section.label}

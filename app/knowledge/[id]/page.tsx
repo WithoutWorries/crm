@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import { ArrowLeft, Check, ExternalLink, Loader2, Pencil, X } from 'lucide-react'
 import type { KnowledgeType } from '@prisma/client'
 import { KNOWLEDGE_TYPES, KNOWLEDGE_TYPE_LABELS } from '@/lib/knowledge'
@@ -44,7 +44,8 @@ function formatFullDate(value: string): string {
   })
 }
 
-export default function KnowledgeNotePage({ params }: { params: { id: string } }) {
+export default function KnowledgeNotePage() {
+  const params = useParams<{ id: string }>()
   const router = useRouter()
   const [note, setNote] = useState<KnowledgeNote | null>(null)
   const [edit, setEdit] = useState<EditState | null>(null)

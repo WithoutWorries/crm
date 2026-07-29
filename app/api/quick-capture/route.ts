@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireSession } from '@/lib/session'
+import { readJsonObject } from '@/lib/request'
 
 const PROCUREMENT_PROMPT = `You are a procurement assistant for a freelance engineering consultant.
 The user will paste a supplier's quote or proposal response email.
@@ -78,7 +79,7 @@ Rules:
 - urgency: infer from language ("urgent", "ASAP" = HIGH; "when you have time" = LOW; default MEDIUM)`
 
 export async function POST(request: NextRequest) {
-  const session = requireSession()
+  const session = await requireSession()
   if (session instanceof NextResponse) return session
 
   const apiKey = process.env.ANTHROPIC_API_KEY
@@ -90,8 +91,11 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const { text, mode } = await request.json()
-    if (!text?.trim()) {
+    const body = await readJsonObject(request, 128 * 1024)
+    if (body instanceof NextResponse) return body
+    const text = typeof body.text === 'string' ? body.text.trim() : ''
+    const mode = body.mode === 'procurement' ? 'procurement' : 'crm'
+    if (!text) {
       return NextResponse.json({ error: 'No text provided' }, { status: 400 })
     }
 
@@ -108,7 +112,7 @@ export async function POST(request: NextRequest) {
         model: 'claude-haiku-4-5-20251001',
         max_tokens: 2048,
         system: systemPrompt,
-        messages: [{ role: 'user', content: text.trim() }],
+        messages: [{ role: 'user', content: text }],
       }),
     })
 

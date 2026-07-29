@@ -4,18 +4,19 @@ import { requireSession } from '@/lib/session'
 import { OpportunityStage } from '@prisma/client'
 
 export async function GET(_request: NextRequest) {
-  const session = requireSession()
+  const session = await requireSession()
   if (session instanceof NextResponse) return session
 
   try {
     const now = new Date()
+    const workspaceRecord = { user: { workspaceId: session.workspaceId } }
 
     const openOpportunities = await prisma.opportunity.count({
-      where: { stage: { notIn: ['WON', 'LOST'] } },
+      where: { ...workspaceRecord, stage: { notIn: ['WON', 'LOST'] } },
     })
 
     const opportunities = await prisma.opportunity.findMany({
-      where: { stage: { notIn: ['WON', 'LOST'] } },
+      where: { ...workspaceRecord, stage: { notIn: ['WON', 'LOST'] } },
       select: { estimatedValue: true, probabilityPercent: true },
     })
 
@@ -28,13 +29,19 @@ export async function GET(_request: NextRequest) {
 
     const overdueTasks = await prisma.task.count({
       where: {
+        ...workspaceRecord,
         status: { notIn: ['COMPLETED', 'CANCELLED'] },
         dueDate: { lt: new Date(now.getFullYear(), now.getMonth(), now.getDate()) },
       },
     })
 
     const followUpsNeeded = await prisma.contact.count({
-      where: { nextFollowUpDate: { lte: new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1) } },
+      where: {
+        ...workspaceRecord,
+        nextFollowUpDate: {
+          lte: new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1),
+        },
+      },
     })
 
     const stages: OpportunityStage[] = [
@@ -44,7 +51,7 @@ export async function GET(_request: NextRequest) {
 
     const pipelineByStage = await Promise.all(stages.map(async (stage) => {
       const opps = await prisma.opportunity.findMany({
-        where: { stage },
+        where: { ...workspaceRecord, stage },
         select: { estimatedValue: true, probabilityPercent: true },
       })
       const count = opps.length
@@ -58,6 +65,7 @@ export async function GET(_request: NextRequest) {
     }))
 
     const recentActivities = await prisma.activity.findMany({
+      where: workspaceRecord,
       include: { contact: true, opportunity: true },
       orderBy: { happenedAt: 'desc' },
       take: 5,
@@ -65,6 +73,7 @@ export async function GET(_request: NextRequest) {
 
     const upcomingTasks = await prisma.task.findMany({
       where: {
+        ...workspaceRecord,
         status: { notIn: ['COMPLETED', 'CANCELLED'] },
         dueDate: { lte: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000) },
       },

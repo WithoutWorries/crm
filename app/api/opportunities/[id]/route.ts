@@ -3,14 +3,17 @@ import { Decimal } from '@prisma/client/runtime/library'
 import { prisma } from '@/lib/prisma'
 import { requireSession } from '@/lib/session'
 import { logAudit } from '@/lib/audit'
+import { workspaceReferencesExist } from '@/lib/access'
+import { readJsonObject } from '@/lib/request'
 
-export async function GET(_request: NextRequest, { params }: { params: { id: string } }) {
-  const session = requireSession()
+export async function GET(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+  const session = await requireSession()
   if (session instanceof NextResponse) return session
 
   try {
-    const opportunity = await prisma.opportunity.findUnique({
-      where: { id: params.id },
+    const opportunity = await prisma.opportunity.findFirst({
+      where: { id, user: { workspaceId: session.workspaceId } },
       include: {
         company: true,
         primaryContact: true,
@@ -34,20 +37,35 @@ export async function GET(_request: NextRequest, { params }: { params: { id: str
   }
 }
 
-export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
-  const session = requireSession()
+export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+  const session = await requireSession()
   if (session instanceof NextResponse) return session
 
   try {
-    const opportunity = await prisma.opportunity.findUnique({ where: { id: params.id } })
+    const opportunity = await prisma.opportunity.findFirst({
+      where: { id, user: { workspaceId: session.workspaceId } },
+    })
     if (!opportunity) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
-    const body = await request.json()
+    const body = await readJsonObject(request)
+    if (body instanceof NextResponse) return body
+    const companyId = body.companyId !== undefined ? body.companyId : opportunity.companyId
+    const primaryContactId =
+      body.primaryContactId !== undefined ? body.primaryContactId : opportunity.primaryContactId
+    if (
+      !(await workspaceReferencesExist(session.workspaceId, {
+        companyId,
+        contactId: primaryContactId,
+      }))
+    ) {
+      return NextResponse.json({ error: 'Related record not found' }, { status: 400 })
+    }
     const updated = await prisma.opportunity.update({
-      where: { id: params.id },
+      where: { id },
       data: {
-        companyId: body.companyId !== undefined ? body.companyId : opportunity.companyId,
-        primaryContactId: body.primaryContactId !== undefined ? body.primaryContactId : opportunity.primaryContactId,
+        companyId,
+        primaryContactId,
         title: body.title || opportunity.title,
         description: body.description !== undefined ? body.description : opportunity.description,
         stage: body.stage || opportunity.stage,
@@ -85,16 +103,19 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
   }
 }
 
-export async function DELETE(_request: NextRequest, { params }: { params: { id: string } }) {
-  const session = requireSession()
+export async function DELETE(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+  const session = await requireSession()
   if (session instanceof NextResponse) return session
   if (session.role !== 'ADMIN') return NextResponse.json({ error: 'Only admins can delete records' }, { status: 403 })
 
   try {
-    const opportunity = await prisma.opportunity.findUnique({ where: { id: params.id } })
+    const opportunity = await prisma.opportunity.findFirst({
+      where: { id, user: { workspaceId: session.workspaceId } },
+    })
     if (!opportunity) return NextResponse.json({ error: 'Not found' }, { status: 404 })
     await logAudit(session.userId, 'DELETE', 'Opportunity', opportunity.id, opportunity.title)
-    await prisma.opportunity.delete({ where: { id: params.id } })
+    await prisma.opportunity.delete({ where: { id } })
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error('[OPPORTUNITY_DELETE_ERROR]', error)

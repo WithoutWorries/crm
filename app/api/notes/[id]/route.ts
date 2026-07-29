@@ -1,13 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireSession } from '@/lib/session'
+import { readJsonObject } from '@/lib/request'
 
-export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
-  const session = requireSession()
+export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+  const session = await requireSession()
   if (session instanceof NextResponse) return session
 
   try {
-    const body = await request.json()
+    const existing = await prisma.note.findFirst({
+      where: {
+        id,
+        isKnowledge: false,
+        user: { workspaceId: session.workspaceId },
+      },
+      select: { id: true },
+    })
+    if (!existing) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+
+    const body = await readJsonObject(request)
+    if (body instanceof NextResponse) return body
     const { content } = body
 
     if (!content?.trim()) {
@@ -15,7 +28,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     }
 
     const note = await prisma.note.update({
-      where: { id: params.id },
+      where: { id },
       data: { content: content.trim() },
     })
 
@@ -26,14 +39,25 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
   }
 }
 
-export async function DELETE(_request: NextRequest, { params }: { params: { id: string } }) {
-  const session = requireSession()
+export async function DELETE(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+  const session = await requireSession()
   if (session instanceof NextResponse) return session
   if (session.role !== 'ADMIN') return NextResponse.json({ error: 'Only admins can delete records' }, { status: 403 })
 
   try {
+    const existing = await prisma.note.findFirst({
+      where: {
+        id,
+        isKnowledge: false,
+        user: { workspaceId: session.workspaceId },
+      },
+      select: { id: true },
+    })
+    if (!existing) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+
     await prisma.note.delete({
-      where: { id: params.id },
+      where: { id },
     })
 
     return NextResponse.json({ success: true })

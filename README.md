@@ -1,10 +1,11 @@
 # Reference / SoloCRM
 
-A private knowledge and reference system alongside an engineering consultancy CRM. Built with Next.js 14, TypeScript, Tailwind CSS, Prisma, and PostgreSQL.
+A private knowledge and reference system alongside an engineering consultancy CRM. Built with Next.js 15, React 19, TypeScript, Tailwind CSS, Prisma, and PostgreSQL.
 
 ## Features
 
 - **Private Knowledge**: Frictionless capture, recent notes, full-text search, note view, and editing
+- **Offline Knowledge Capture**: Device-first drafts and an automatic, duplicate-safe sync queue
 - **Dashboard**: Overview of open opportunities, pipeline value, overdue tasks, and recent activity
 - **Pipeline Management**: Kanban-style board to track opportunities through 8 stages
 - **Companies**: Manage client companies with industry, regulatory, and contact information
@@ -16,14 +17,17 @@ A private knowledge and reference system alongside an engineering consultancy CR
 
 ## Tech Stack
 
-- **Framework**: Next.js 14 (App Router)
+- **Framework**: Next.js 15 (App Router)
 - **Language**: TypeScript
 - **Styling**: Tailwind CSS + shadcn/ui components
 - **ORM**: Prisma
 - **Database**: PostgreSQL
 - **Icons**: Lucide React
 
-## Getting Started
+## Local development only
+
+These instructions start a separate development copy at `localhost:3000`. They do not
+replace or interfere with the deployed website or its installed Safari app.
 
 ### Prerequisites
 
@@ -67,9 +71,26 @@ npm run dev
 
 6. Open [http://localhost:3000](http://localhost:3000) in your browser
 
-## Authentication
+## Authentication and access boundaries
 
-Users sign in with their email and PBKDF2-hashed password. Sessions use an HTTP-only, HMAC-signed cookie with a server-verified expiry. Create the first local admin through the seed script only on a disposable database, or use an existing production account.
+Users sign in with their email and a scrypt-hashed password. Legacy PBKDF2 hashes are
+accepted once and upgraded after a successful sign-in. Sessions are revocable,
+database-backed, expire after seven days, and use a secure HTTP-only SameSite cookie.
+Login throttling survives server restarts and security events are retained.
+
+The current deployment has one trusted internal workspace, intended for no more than
+two internal users. CRM and enquiry records are shared within that workspace; Knowledge
+records remain private to their author. Procurement records also remain user-specific.
+Customer accounts must not be added to this workspace. Project-level customer isolation
+is a Stage 7 feature and a prerequisite for external access.
+
+Knowledge drafts and submitted-but-unsynchronised captures are stored in IndexedDB on
+the current device. They are scoped to the last authenticated user and are removed from
+the queue only after the server confirms the save. The service worker caches the
+application shell but never caches API responses or Knowledge records.
+
+Create the first local admin through the seed script only on a disposable database, or
+use an existing production account.
 
 The application includes sample data for a freelance engineering consultant with:
 - 5 client companies (Altitude Systems, MedSafe Technologies, Neptune Defence Systems, Vitaflow Medical, GridEdge Renewables)
@@ -119,12 +140,14 @@ solo-crm/
 
 - `npm run dev` - Start development server (http://localhost:3000)
 - `npm run build` - Build for production
+- `npm run vercel-build` - Apply production migrations and build on Vercel
 - `npm start` - Start production server
 - `npm run lint` - Run ESLint
 - `npm run db:push` - Push schema changes to database
 - `npm run db:seed` - Seed database with sample data
 - `npm run db:studio` - Open Prisma Studio (visual DB editor)
 - `npm run db:migrate` - Create and run migrations
+- `npm run db:deploy` - Apply committed migrations without changing the schema
 
 ## Key Features Implemented
 

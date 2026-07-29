@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState, useCallback } from 'react'
-import { useRouter } from 'next/navigation'
+import { clearLastKnowledgeUser } from '@/lib/offline-knowledge'
 
 // How long before signing the user out (30 minutes)
 const INACTIVITY_LIMIT_MS = 30 * 60 * 1000
@@ -13,7 +13,6 @@ const REFRESH_INTERVAL_MS = 5 * 60 * 1000
 const ACTIVITY_EVENTS = ['mousemove', 'mousedown', 'keydown', 'scroll', 'touchstart', 'click']
 
 export function InactivityTimer() {
-  const router = useRouter()
   const lastActivityRef = useRef(Date.now())
   const lastRefreshRef = useRef(Date.now())
   const [showWarning, setShowWarning] = useState(false)
@@ -21,9 +20,15 @@ export function InactivityTimer() {
   const warningIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const signOut = useCallback(async () => {
-    await fetch('/api/auth/logout', { method: 'POST' })
-    router.push('/login')
-  }, [router])
+    await clearLastKnowledgeUser().catch((error) =>
+      console.error('[OFFLINE_IDENTITY_CLEAR]', error)
+    )
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' })
+    } finally {
+      window.location.href = '/login'
+    }
+  }, [])
 
   const refreshSession = useCallback(async () => {
     try {

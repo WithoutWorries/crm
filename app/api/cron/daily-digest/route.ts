@@ -7,6 +7,20 @@ const PRIORITY_EMOJI: Record<string, string> = {
   LOW: '🟢',
 }
 
+function escapeHtml(value: string) {
+  return value.replace(
+    /[&<>"']/g,
+    (character) =>
+      ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#039;',
+      })[character]!
+  )
+}
+
 export async function GET(request: NextRequest) {
   // Verify Vercel cron secret
   const authHeader = request.headers.get('authorization')
@@ -111,6 +125,10 @@ Write a short, natural email body — no subject line, no greeting (it will be a
       dueThisWeek.length > 0 ? `${dueThisWeek.length} this week`: '',
       later.length       > 0 ? `${later.length} later`          : '',
     ].filter(Boolean).join(' · ')
+    const safeDate = escapeHtml(dateStr)
+    const safeFirstName = escapeHtml(firstName)
+    const safeStatsLine = escapeHtml(statsLine)
+    const safeAiBody = escapeHtml(aiBody)
 
     const htmlBody = `
 <!DOCTYPE html>
@@ -119,12 +137,12 @@ Write a short, natural email body — no subject line, no greeting (it will be a
 <body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#1e293b;background:#f8fafc;margin:0;padding:0;">
   <div style="max-width:600px;margin:32px auto;background:#ffffff;border-radius:12px;border:1px solid #e2e8f0;overflow:hidden;">
     <div style="background:linear-gradient(135deg,#4f46e5,#7c3aed);padding:24px 32px;">
-      <p style="color:#c7d2fe;font-size:13px;margin:0 0 4px;">CRM Daily Digest · ${dateStr}</p>
-      <h1 style="color:#ffffff;font-size:22px;font-weight:600;margin:0;">Good morning, ${firstName}</h1>
+      <p style="color:#c7d2fe;font-size:13px;margin:0 0 4px;">CRM Daily Digest · ${safeDate}</p>
+      <h1 style="color:#ffffff;font-size:22px;font-weight:600;margin:0;">Good morning, ${safeFirstName}</h1>
     </div>
     <div style="padding:28px 32px;">
-      ${statsLine ? `<div style="background:#f1f5f9;border-radius:8px;padding:10px 16px;font-size:13px;color:#64748b;margin-bottom:20px;">${statsLine}</div>` : ''}
-      <div style="font-size:15px;line-height:1.7;white-space:pre-line;color:#334155;">${aiBody}</div>
+      ${safeStatsLine ? `<div style="background:#f1f5f9;border-radius:8px;padding:10px 16px;font-size:13px;color:#64748b;margin-bottom:20px;">${safeStatsLine}</div>` : ''}
+      <div style="font-size:15px;line-height:1.7;white-space:pre-line;color:#334155;">${safeAiBody}</div>
     </div>
     <div style="background:#f8fafc;padding:16px 32px;border-top:1px solid #e2e8f0;">
       <a href="https://crm.frasermackie.com/tasks" style="color:#4f46e5;font-size:13px;text-decoration:none;">Open tasks in CRM →</a>

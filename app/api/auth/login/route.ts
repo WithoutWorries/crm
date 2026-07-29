@@ -1,19 +1,38 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { verifyPassword, hashPassword } from '@/lib/auth'
-import { createSessionToken, COOKIE_NAME, SESSION_MAX_AGE_SECONDS } from '@/lib/session'
+import { verifyPassword, hashPassword, passwordNeedsUpgrade } from '@/lib/auth'
+import { createSession, setSessionCookie } from '@/lib/session'
+import {
+  getClientIp,
+  isLoginBlocked,
+  recordLoginFailure,
+  recordLoginSuccess,
+} from '@/lib/security'
+import { readJsonObject } from '@/lib/request'
 
 export async function POST(request: NextRequest) {
   try {
-    const { email, password } = await request.json()
+    const body = await readJsonObject(request, 16 * 1024)
+    if (body instanceof NextResponse) return body
+    const email = typeof body.email === 'string' ? body.email.toLowerCase().trim() : ''
+    const password = typeof body.password === 'string' ? body.password : ''
+    const ipAddress = getClientIp(request)
+    const userAgent = request.headers.get('user-agent')
 
-    if (!email || !password) {
+    if (!email || !password || email.length > 320 || password.length > 1_024) {
       return NextResponse.json({ error: 'Email and password are required' }, { status: 400 })
     }
 
-    const user = await prisma.user.findUnique({ where: { email: email.toLowerCase().trim() } })
+    if (await isLoginBlocked(email, ipAddress)) {
+      return NextResponse.json(
+        { error: 'Too many sign-in attempts. Try again in 15 minutes.' },
+        { status: 429, headers: { 'Retry-After': '900', 'Cache-Control': 'no-store' } }
+      )
+    }
 
+    const user = await prisma.user.findUnique({ where: { email } })
     if (!user || !user.isActive) {
+      await recordLoginFailure(email, ipAddress)
       return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 })
     }
 
@@ -32,33 +51,24 @@ export async function POST(request: NextRequest) {
     }
 
     if (!authenticated) {
+      await recordLoginFailure(email, ipAddress, user.id)
       return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 })
     }
 
-    const token = createSessionToken(user.id, user.role)
-    const response = NextResponse.json({ success: true, name: user.name, role: user.role })
+    if (user.passwordHash && passwordNeedsUpgrade(user.passwordHash)) {
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { passwordHash: hashPassword(password) },
+      })
+    }
 
-    response.cookies.set(COOKIE_NAME, token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: SESSION_MAX_AGE_SECONDS,
-      path: '/',
-    })
+    const token = await createSession(user.id, user.role, { ipAddress, userAgent })
+    const response = NextResponse.json({ success: true, name: user.name, role: user.role })
+    setSessionCookie(response, token)
 
     response.cookies.set('solo-crm-auth', '', { expires: new Date(0), path: '/' })
 
-    // Record login — isolated so any failure never blocks the login response
-    try {
-      const forwarded = request.headers.get('x-forwarded-for')
-      const ipAddress = forwarded ? forwarded.split(',')[0].trim() : (request.headers.get('x-real-ip') ?? null)
-      const userAgent = request.headers.get('user-agent')
-      await prisma.loginRecord.create({
-        data: { userId: user.id, ipAddress, userAgent },
-      })
-    } catch (recordErr) {
-      console.error('[LOGIN_RECORD_ERROR]', recordErr)
-    }
+    await recordLoginSuccess(email, ipAddress, user.id, userAgent)
 
     return response
   } catch (error) {

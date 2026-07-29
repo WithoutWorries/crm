@@ -3,9 +3,14 @@ import { Decimal } from '@prisma/client/runtime/library'
 import crypto from 'crypto'
 
 function hashPassword(password: string): string {
-  const salt = crypto.randomBytes(16).toString('hex')
-  const hash = crypto.pbkdf2Sync(password, salt, 100_000, 64, 'sha512').toString('hex')
-  return `${salt}:${hash}`
+  const salt = crypto.randomBytes(16)
+  const hash = crypto.scryptSync(password, salt, 64, {
+    N: 32_768,
+    r: 8,
+    p: 1,
+    maxmem: 64 * 1024 * 1024,
+  })
+  return `scrypt$32768$8$1$${salt.toString('hex')}$${hash.toString('hex')}`
 }
 
 const prisma = new PrismaClient()
@@ -24,14 +29,22 @@ async function main() {
   await prisma.opportunity.deleteMany({})
   await prisma.contact.deleteMany({})
   await prisma.company.deleteMany({})
+  await prisma.session.deleteMany({})
+  await prisma.securityEvent.deleteMany({})
+  await prisma.loginThrottle.deleteMany({})
   await prisma.user.deleteMany({})
+  await prisma.workspace.deleteMany({})
 
   const adminEmail = process.env.ADMIN_EMAIL || 'fraser@solocrm.local'
   const adminPassword = process.env.ADMIN_PASSWORD || process.env.AUTH_PASSWORD || 'changeme123'
+  const workspace = await prisma.workspace.create({
+    data: { name: 'Reference' },
+  })
 
   // Create admin user
   const user = await prisma.user.create({
     data: {
+      workspaceId: workspace.id,
       email: adminEmail,
       name: 'Fraser',
       passwordHash: hashPassword(adminPassword),

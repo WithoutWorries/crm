@@ -10,6 +10,7 @@ import {
   Target,
   Users,
   Zap,
+  Milestone,
 } from 'lucide-react'
 
 export interface NavigationItem {
@@ -19,8 +20,9 @@ export interface NavigationItem {
 }
 
 export interface NavigationSection {
-  label: 'Knowledge' | 'Enquiries' | 'Analysis'
+  label: 'Knowledge' | 'Enquiries' | 'Analysis' | 'Development'
   items: NavigationItem[]
+  adminOnly?: boolean
 }
 
 export const NAVIGATION_SECTIONS: NavigationSection[] = [
@@ -48,5 +50,10 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
       { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
       { href: '/procurement', icon: Briefcase, label: 'Procurement' },
     ],
+  },
+  {
+    label: 'Development',
+    adminOnly: true,
+    items: [{ href: '/development', icon: Milestone, label: 'Roadmap' }],
   },
 ]

@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { INFLUENCE_LEVEL_LABELS, INFLUENCE_LEVEL_COLORS, RELATIONSHIP_LABELS, RELATIONSHIP_COLORS } from '@/lib/constants'
 import { Badge } from '@/components/shared/badge'
 import { formatRelativeDate } from '@/lib/utils'
-import { ArrowLeft, Edit2, Mail, Phone, Linkedin, Trash2 } from 'lucide-react'
+import { ArrowLeft, Edit2, Mail, Phone, LinkIcon, Trash2 } from 'lucide-react'
 import Link from 'next/link'
 import { NotesSection } from '@/components/shared/notes-section'
 import { ActivityTimeline } from '@/components/opportunities/activity-timeline'
@@ -197,7 +197,7 @@ export default function ContactDetailPage() {
                 )}
                 {contact.linkedinUrl && (
                   <div className="flex items-center gap-3">
-                    <Linkedin className="h-4 w-4 text-slate-400 dark:text-fmea-dim flex-shrink-0" />
+                    <LinkIcon className="h-4 w-4 text-slate-400 dark:text-fmea-dim flex-shrink-0" />
                     <a href={contact.linkedinUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-indigo-600 dark:text-fmea-accent hover:underline">LinkedIn Profile</a>
                   </div>
                 )}

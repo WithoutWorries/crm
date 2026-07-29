@@ -17,6 +17,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     setSidebarCollapsed(window.localStorage.getItem(SIDEBAR_STORAGE_KEY) === 'true')
   }, [])
 
+  useEffect(() => {
+    if (process.env.NODE_ENV !== 'production' || !('serviceWorker' in navigator)) return
+    navigator.serviceWorker
+      .register('/sw.js', { scope: '/', updateViaCache: 'none' })
+      .catch((error) => console.error('[SERVICE_WORKER_REGISTRATION]', error))
+  }, [])
+
   const toggleSidebar = () => {
     setSidebarCollapsed((current) => {
       const next = !current

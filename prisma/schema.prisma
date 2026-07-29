@@ -203,6 +203,7 @@ enum KnowledgeType {
 
 model User {
   id                     String    @id @default(cuid())
+  workspaceId            String
   email                  String    @unique
   name                   String?
   passwordHash           String?
@@ -224,6 +225,63 @@ model User {
   loginRecords         LoginRecord[]
   procurementProjects  ProcurementProject[]
   procurementSuppliers ProcurementSupplier[]
+  sessions              Session[]
+  securityEvents        SecurityEvent[]
+  workspace             Workspace @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+
+  @@index([workspaceId])
+}
+
+model Workspace {
+  id        String   @id @default(cuid())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users User[]
+}
+
+model Session {
+  id         String   @id @default(cuid())
+  userId     String
+  tokenHash  String   @unique
+  expiresAt  DateTime
+  lastSeenAt DateTime @default(now())
+  userAgent  String?
+  ipAddress  String?
+  createdAt  DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model LoginThrottle {
+  keyHash         String    @id
+  failureCount    Int       @default(0)
+  windowStartedAt DateTime  @default(now())
+  blockedUntil    DateTime?
+  updatedAt       DateTime  @updatedAt
+
+  @@index([blockedUntil])
+}
+
+model SecurityEvent {
+  id         String   @id @default(cuid())
+  userId     String?
+  eventType  String
+  outcome    String
+  ipAddress  String?
+  userAgent  String?
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+  @@index([eventType, createdAt])
+  @@index([createdAt])
 }
 
 model LoginRecord {
@@ -429,11 +487,13 @@ model Task {
 model Note {
   id            String         @id @default(cuid())
   userId        String
+  clientCaptureId String?
   title         String?
   content       String
   knowledgeType KnowledgeType?
   sourceUrl     String?
   isKnowledge   Boolean        @default(false)
+  capturedAt    DateTime?
   contactId     String?
   opportunityId String?
   companyId     String?
@@ -447,6 +507,7 @@ model Note {
 
   @@index([userId, createdAt])
   @@index([userId, isKnowledge, updatedAt])
+  @@unique([userId, clientCaptureId])
   @@index([contactId])
   @@index([opportunityId])
   @@index([companyId])

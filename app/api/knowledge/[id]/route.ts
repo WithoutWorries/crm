@@ -10,6 +10,7 @@ import {
   validateKnowledgeContent,
 } from '@/lib/knowledge'
 import { prisma } from '@/lib/prisma'
+import { readJsonObject } from '@/lib/request'
 import { requireActiveSession } from '@/lib/session'
 
 const noteSelect = {
@@ -18,16 +19,18 @@ const noteSelect = {
   content: true,
   knowledgeType: true,
   sourceUrl: true,
+  capturedAt: true,
   createdAt: true,
   updatedAt: true,
 } as const
 
-export async function GET(_request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
   const session = await requireActiveSession()
   if (session instanceof NextResponse) return session
 
   const note = await prisma.note.findFirst({
-    where: { id: params.id, userId: session.userId, isKnowledge: true },
+    where: { id, userId: session.userId, isKnowledge: true },
     select: noteSelect,
   })
 
@@ -35,7 +38,8 @@ export async function GET(_request: NextRequest, { params }: { params: { id: str
   return NextResponse.json(note)
 }
 
-export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
   const session = await requireActiveSession()
   if (session instanceof NextResponse) return session
 
@@ -45,12 +49,13 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
 
   try {
     const existing = await prisma.note.findFirst({
-      where: { id: params.id, userId: session.userId, isKnowledge: true },
+      where: { id, userId: session.userId, isKnowledge: true },
       select: { id: true },
     })
     if (!existing) return NextResponse.json({ error: 'Note not found' }, { status: 404 })
 
-    const body = await request.json()
+    const body = await readJsonObject(request, 128 * 1024)
+    if (body instanceof NextResponse) return body
     const content = validateKnowledgeContent(body.content)
     if (!content) {
       return NextResponse.json(

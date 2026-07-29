@@ -2,14 +2,16 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireSession } from '@/lib/session'
 import { logAudit } from '@/lib/audit'
+import { readJsonObject } from '@/lib/request'
 
-export async function GET(_request: NextRequest, { params }: { params: { id: string } }) {
-  const session = requireSession()
+export async function GET(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+  const session = await requireSession()
   if (session instanceof NextResponse) return session
 
   try {
-    const company = await prisma.company.findUnique({
-      where: { id: params.id },
+    const company = await prisma.company.findFirst({
+      where: { id, user: { workspaceId: session.workspaceId } },
       include: {
         contacts: true,
         opportunities: true,
@@ -24,17 +26,21 @@ export async function GET(_request: NextRequest, { params }: { params: { id: str
   }
 }
 
-export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
-  const session = requireSession()
+export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+  const session = await requireSession()
   if (session instanceof NextResponse) return session
 
   try {
-    const company = await prisma.company.findUnique({ where: { id: params.id } })
+    const company = await prisma.company.findFirst({
+      where: { id, user: { workspaceId: session.workspaceId } },
+    })
     if (!company) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
-    const body = await request.json()
+    const body = await readJsonObject(request)
+    if (body instanceof NextResponse) return body
     const updated = await prisma.company.update({
-      where: { id: params.id },
+      where: { id },
       data: {
         name: body.name || company.name,
         website: body.website !== undefined ? body.website : company.website,
@@ -54,16 +60,19 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
   }
 }
 
-export async function DELETE(_request: NextRequest, { params }: { params: { id: string } }) {
-  const session = requireSession()
+export async function DELETE(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+  const session = await requireSession()
   if (session instanceof NextResponse) return session
   if (session.role !== 'ADMIN') return NextResponse.json({ error: 'Only admins can delete records' }, { status: 403 })
 
   try {
-    const company = await prisma.company.findUnique({ where: { id: params.id } })
+    const company = await prisma.company.findFirst({
+      where: { id, user: { workspaceId: session.workspaceId } },
+    })
     if (!company) return NextResponse.json({ error: 'Not found' }, { status: 404 })
     await logAudit(session.userId, 'DELETE', 'Company', company.id, company.name)
-    await prisma.company.delete({ where: { id: params.id } })
+    await prisma.company.delete({ where: { id } })
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error('[COMPANY_DELETE_ERROR]', error)
