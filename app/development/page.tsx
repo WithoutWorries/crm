@@ -148,13 +148,19 @@ export default function DevelopmentPage() {
               Programme position
             </p>
             <div className="mt-5 flex items-end gap-3">
+              <span className="pb-1 text-sm font-medium text-slate-500 dark:text-fmea-dim">
+                Stage
+              </span>
               <span className="text-5xl font-semibold tracking-tight text-slate-950 dark:text-fmea-hi">
-                {activeStage ? activeStage.number + 1 : completed}
+                {activeStage?.number ?? '—'}
               </span>
               <span className="pb-1 text-sm text-slate-500 dark:text-fmea-dim">
-                of {ROADMAP_STAGES.length} stages underway
+                of {ROADMAP_STAGES.at(-1)?.number ?? '—'} · currently active
               </span>
             </div>
+            <p className="mt-2 text-xs text-slate-400 dark:text-fmea-dim">
+              Eight stages in total, numbered 0–7.
+            </p>
             <div className="mt-5 grid grid-cols-8 gap-1.5" aria-label="Programme progress">
               {ROADMAP_STAGES.map((stage) => (
                 <div
