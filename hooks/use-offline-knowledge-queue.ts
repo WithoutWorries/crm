@@ -23,6 +23,7 @@ export interface SyncedKnowledgeNote {
   knowledgeType: KnowledgeType | null
   sourceUrl: string | null
   capturedAt: string | null
+  deletedAt: string | null
   createdAt: string
   updatedAt: string
 }

@@ -4,7 +4,7 @@ A private knowledge and reference system alongside an engineering consultancy CR
 
 ## Features
 
-- **Private Knowledge**: Frictionless capture, recent notes, full-text search, note view, and editing
+- **Private Knowledge**: Frictionless capture, recent notes, full-text search, editing, and recoverable deletion
 - **Offline Knowledge Capture**: Device-first drafts and an automatic, duplicate-safe sync queue
 - **Dashboard**: Overview of open opportunities, pipeline value, overdue tasks, and recent activity
 - **Pipeline Management**: Kanban-style board to track opportunities through 8 stages
@@ -217,8 +217,8 @@ The Prisma schema includes:
 
 Routes require a signed session unless explicitly documented as a token- or secret-protected integration:
 
-- `GET/POST /api/knowledge` - Private recent notes, search, and capture
-- `GET/PUT /api/knowledge/[id]` - Private note view and editing
+- `GET/POST /api/knowledge` - Private recent notes, search, capture, and Recently Deleted listing
+- `GET/PUT/PATCH/DELETE /api/knowledge/[id]` - Private view, editing, restore, and deletion
 - `GET/POST /api/companies` - List and create companies
 - `GET/PUT/DELETE /api/companies/[id]` - Company detail operations
 - `GET/POST /api/contacts` - List and create contacts

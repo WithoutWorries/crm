@@ -29,6 +29,26 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
+  const retentionCutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+  const purgedKnowledgeNotes = await prisma.note.deleteMany({
+    where: {
+      isKnowledge: true,
+      deletedAt: { lte: retentionCutoff },
+    },
+  })
+  if (purgedKnowledgeNotes.count > 0) {
+    await prisma.securityEvent.create({
+      data: {
+        eventType: 'KNOWLEDGE_RETENTION_PURGE',
+        outcome: 'SUCCESS',
+        metadata: {
+          count: purgedKnowledgeNotes.count,
+          retentionCutoff: retentionCutoff.toISOString(),
+        },
+      },
+    })
+  }
+
   const resendKey = process.env.RESEND_API_KEY
   const anthropicKey = process.env.ANTHROPIC_API_KEY
   if (!resendKey || !anthropicKey) {
@@ -171,5 +191,5 @@ Write a short, natural email body — no subject line, no greeting (it will be a
     }
   }
 
-  return NextResponse.json({ ok: true, sent })
+  return NextResponse.json({ ok: true, sent, purgedKnowledgeNotes: purgedKnowledgeNotes.count })
 }

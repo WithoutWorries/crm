@@ -12,6 +12,7 @@ import {
   Loader2,
   Plus,
   Search,
+  Trash2,
   X,
 } from 'lucide-react'
 import { KNOWLEDGE_TYPE_LABELS } from '@/lib/knowledge'
@@ -28,6 +29,7 @@ interface KnowledgeNote {
   knowledgeType: KnowledgeType | null
   sourceUrl: string | null
   capturedAt: string | null
+  deletedAt: string | null
   createdAt: string
   updatedAt: string
 }
@@ -204,14 +206,23 @@ export default function KnowledgePage() {
 
       <div className="mb-8 flex items-center justify-between px-1 text-xs text-slate-500 dark:text-fmea-dim">
         <span>Searches titles and full note content</span>
-        <button
-          type="button"
-          onClick={() => captureRef.current?.focus()}
-          className="inline-flex items-center gap-1.5 font-semibold text-cyan-700 hover:text-cyan-900 dark:text-fmea-accent dark:hover:text-cyan-300"
-        >
-          <Plus className="h-3.5 w-3.5" />
-          Capture something
-        </button>
+        <div className="flex items-center gap-4">
+          <Link
+            href="/knowledge/deleted"
+            className="inline-flex items-center gap-1.5 font-medium text-slate-500 hover:text-slate-800 dark:text-fmea-dim dark:hover:text-fmea-text"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+            Recently deleted
+          </Link>
+          <button
+            type="button"
+            onClick={() => captureRef.current?.focus()}
+            className="inline-flex items-center gap-1.5 font-semibold text-cyan-700 hover:text-cyan-900 dark:text-fmea-accent dark:hover:text-cyan-300"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            Capture something
+          </button>
+        </div>
       </div>
 
       {error && (

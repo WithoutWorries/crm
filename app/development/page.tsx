@@ -21,6 +21,7 @@ import {
   PROGRESS_ENTRIES,
   ROADMAP_STAGES,
   ROADMAP_UPDATED_AT,
+  STAGE_ZERO_REMAINING_TASKS,
   type RoadmapStatus,
 } from '@/lib/development-roadmap'
 import { AccessBoundaryMap } from '@/components/development/access-boundary-map'
@@ -119,7 +120,7 @@ export default function DevelopmentPage() {
                   <span className="text-xs font-semibold uppercase tracking-wider">Built</span>
                 </div>
                 <p className="mt-2 text-sm font-semibold text-slate-900 dark:text-fmea-hi">
-                  Security code ready
+                  Production live
                 </p>
               </div>
               <div className="rounded-2xl border border-amber-200 bg-amber-50/80 p-4 dark:border-amber-900/70 dark:bg-amber-950/20">
@@ -128,7 +129,7 @@ export default function DevelopmentPage() {
                   <span className="text-xs font-semibold uppercase tracking-wider">Next</span>
                 </div>
                 <p className="mt-2 text-sm font-semibold text-slate-900 dark:text-fmea-hi">
-                  Production rollout
+                  Recovery smoke test
                 </p>
               </div>
               <div className="rounded-2xl border border-stone-200 bg-white/80 p-4 dark:border-fmea-border dark:bg-fmea-bg3">
@@ -192,6 +193,62 @@ export default function DevelopmentPage() {
       </section>
 
       <AccessBoundaryMap />
+
+      <section className="mb-10 rounded-3xl border border-amber-200 bg-amber-50/60 p-6 shadow-sm dark:border-amber-900/60 dark:bg-amber-950/15 sm:p-8">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-amber-700 dark:text-amber-300">
+              Stage 0 closeout
+            </p>
+            <h2 className="mt-1 text-lg font-semibold text-slate-950 dark:text-fmea-hi">
+              {STAGE_ZERO_REMAINING_TASKS.length} tasks remain
+            </h2>
+          </div>
+          <p className="max-w-lg text-xs leading-5 text-slate-500 dark:text-fmea-dim">
+            Stage 1 does not begin until these operational checks are evidenced and accepted.
+          </p>
+        </div>
+
+        <ol className="mt-6 grid gap-3 md:grid-cols-2">
+          {STAGE_ZERO_REMAINING_TASKS.map((task, index) => (
+            <li
+              key={task.title}
+              className={`rounded-2xl border bg-white p-4 dark:bg-fmea-bg2 ${
+                task.next
+                  ? 'border-amber-300 ring-2 ring-amber-100 dark:border-amber-700 dark:ring-amber-950/50'
+                  : 'border-stone-200 dark:border-fmea-border'
+              }`}
+            >
+              <div className="flex items-start gap-3">
+                <span
+                  className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
+                    task.next
+                      ? 'bg-amber-600 text-white'
+                      : 'bg-stone-100 text-stone-500 dark:bg-fmea-bg3 dark:text-fmea-dim'
+                  }`}
+                >
+                  {index + 1}
+                </span>
+                <div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h3 className="text-sm font-semibold text-slate-900 dark:text-fmea-hi">
+                      {task.title}
+                    </h3>
+                    {task.next && (
+                      <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-amber-800 dark:bg-amber-950/50 dark:text-amber-300">
+                        Next
+                      </span>
+                    )}
+                  </div>
+                  <p className="mt-1 text-xs leading-5 text-slate-500 dark:text-fmea-dim">
+                    {task.detail}
+                  </p>
+                </div>
+              </div>
+            </li>
+          ))}
+        </ol>
+      </section>
 
       <section className="mb-10">
         <div className="mb-4 flex items-center justify-between">

@@ -15,7 +15,40 @@ export interface ProgressEntry {
   stage: number | null
 }
 
-export const ROADMAP_UPDATED_AT = '29 July 2026'
+export interface RemainingStageTask {
+  title: string
+  detail: string
+  next: boolean
+}
+
+export const ROADMAP_UPDATED_AT = '2 August 2026'
+
+export const STAGE_ZERO_REMAINING_TASKS: RemainingStageTask[] = [
+  {
+    title: 'Verify deletion and recovery in production',
+    detail:
+      'Move a note to Recently Deleted, restore it, then permanently remove a disposable test note.',
+    next: true,
+  },
+  {
+    title: 'Run the two-user access smoke test',
+    detail:
+      'Confirm each internal user can access shared consultancy records but cannot read the other user’s private Knowledge notes.',
+    next: false,
+  },
+  {
+    title: 'Complete an isolated backup restore drill',
+    detail:
+      'Restore a fresh encrypted backup into a separate database, validate record counts and sample records, then destroy the temporary restore.',
+    next: false,
+  },
+  {
+    title: 'Record Stage 0 closure',
+    detail:
+      'Capture the production evidence, accepted residual risks and approval before changing Stage 0 to Complete.',
+    next: false,
+  },
+]
 
 export const ROADMAP_STAGES: RoadmapStage[] = [
   {
@@ -127,6 +160,27 @@ export const ROADMAP_STAGES: RoadmapStage[] = [
 ]
 
 export const PROGRESS_ENTRIES: ProgressEntry[] = [
+  {
+    date: '2 August 2026',
+    title: 'Recoverable Knowledge deletion implemented',
+    detail:
+      'Knowledge notes can be moved to a private Recently Deleted area, restored during a 30-day window or deliberately deleted permanently.',
+    stage: 0,
+  },
+  {
+    date: '2 August 2026',
+    title: 'Offline capture verified in production',
+    detail:
+      'A note was captured without connectivity, retained in the device queue and synchronised to the production database after reconnection.',
+    stage: 0,
+  },
+  {
+    date: '30 July 2026',
+    title: 'Production rollout confirmed',
+    detail:
+      'Vercel applied all six migrations, completed the Next.js production build and published commit d3ed471.',
+    stage: 0,
+  },
   {
     date: '29 July 2026',
     title: 'Offline Knowledge capture secured',

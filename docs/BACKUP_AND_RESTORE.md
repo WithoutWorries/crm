@@ -16,6 +16,10 @@ the server confirms synchronisation. They are not present in database or JSON ba
 before that confirmation. Check that the Knowledge panel says the device queue is clear
 before wiping, replacing or signing out permanently from a device.
 
+Knowledge notes in Recently Deleted remain in server backups during their 30-day
+recovery window. Once a note is deleted permanently or removed by retention cleanup, it
+can only be recovered from a backup created before that removal.
+
 The response includes `X-Backup-SHA256`. Record the digest with the filename so a later
 restore drill can prove the file has not changed. Store exports in encrypted storage;
 the JSON itself is not encrypted.

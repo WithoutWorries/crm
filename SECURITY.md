@@ -27,6 +27,8 @@ treated as an access control.
 - Security-patched framework and dependency baseline.
 - Admin-only workspace backup that omits password hashes, calendar tokens and sessions.
 - User-scoped, idempotent offline Knowledge capture with no API-response caching.
+- Owner-scoped recoverable Knowledge deletion with deliberate permanent deletion and
+  automatic 30-day retention cleanup.
 
 ## Offline device data
 

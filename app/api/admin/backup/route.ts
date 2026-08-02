@@ -86,7 +86,7 @@ export async function GET() {
 
     const backup = {
       exportedAt: new Date().toISOString(),
-      schemaVersion: '7.0',
+      schemaVersion: '8.0',
       scope: {
         workspace,
         exportedByUserId: session.userId,

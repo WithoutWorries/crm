@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
-import { ArrowLeft, Check, ExternalLink, Loader2, Pencil, X } from 'lucide-react'
+import { ArrowLeft, Check, ExternalLink, Loader2, Pencil, Trash2, X } from 'lucide-react'
 import type { KnowledgeType } from '@prisma/client'
 import { KNOWLEDGE_TYPES, KNOWLEDGE_TYPE_LABELS } from '@/lib/knowledge'
 
@@ -13,6 +13,7 @@ interface KnowledgeNote {
   content: string
   knowledgeType: KnowledgeType | null
   sourceUrl: string | null
+  deletedAt: string | null
   createdAt: string
   updatedAt: string
 }
@@ -51,6 +52,8 @@ export default function KnowledgeNotePage() {
   const [edit, setEdit] = useState<EditState | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(false)
   const [error, setError] = useState('')
 
   useEffect(() => {
@@ -107,6 +110,24 @@ export default function KnowledgeNotePage() {
     }
   }
 
+  const deleteNote = async () => {
+    if (deleting) return
+    setDeleting(true)
+    setError('')
+    try {
+      const response = await fetch(`/api/knowledge/${params.id}`, { method: 'DELETE' })
+      const data = await response.json().catch(() => null)
+      if (!response.ok) throw new Error(data?.error || 'Unable to delete note')
+      router.replace('/knowledge')
+      router.refresh()
+    } catch (deleteError) {
+      setError(deleteError instanceof Error ? deleteError.message : 'Unable to delete note')
+      setConfirmDelete(false)
+    } finally {
+      setDeleting(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="mx-auto flex max-w-3xl items-center gap-2 py-20 text-sm text-slate-500 dark:text-fmea-dim">
@@ -138,15 +159,64 @@ export default function KnowledgeNotePage() {
           Back to search
         </Link>
         {!edit && (
-          <button
-            onClick={beginEditing}
-            className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3.5 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 dark:border-fmea-border dark:bg-fmea-bg2 dark:text-fmea-text dark:hover:bg-fmea-bg3"
-          >
-            <Pencil className="h-4 w-4" />
-            Edit
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setConfirmDelete(true)}
+              className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3.5 py-2 text-sm font-semibold text-slate-600 shadow-sm hover:border-rose-300 hover:bg-rose-50 hover:text-rose-700 dark:border-fmea-border dark:bg-fmea-bg2 dark:text-fmea-dim dark:hover:border-rose-900 dark:hover:bg-rose-950/30 dark:hover:text-rose-300"
+            >
+              <Trash2 className="h-4 w-4" />
+              Delete
+            </button>
+            <button
+              onClick={beginEditing}
+              className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3.5 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 dark:border-fmea-border dark:bg-fmea-bg2 dark:text-fmea-text dark:hover:bg-fmea-bg3"
+            >
+              <Pencil className="h-4 w-4" />
+              Edit
+            </button>
+          </div>
         )}
       </div>
+
+      {confirmDelete && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/45 px-4 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="delete-note-title"
+        >
+          <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl dark:border-fmea-border dark:bg-fmea-bg2">
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300">
+              <Trash2 className="h-5 w-5" />
+            </div>
+            <h2 id="delete-note-title" className="mt-4 text-lg font-semibold text-slate-950 dark:text-fmea-hi">
+              Move this note to Recently Deleted?
+            </h2>
+            <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-fmea-dim">
+              It will disappear from search but can be restored for 30 days before automatic deletion.
+            </p>
+            <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                onClick={() => setConfirmDelete(false)}
+                disabled={deleting}
+                className="rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50 dark:border-fmea-border dark:bg-fmea-bg2 dark:text-fmea-text dark:hover:bg-fmea-bg3"
+              >
+                Keep note
+              </button>
+              <button
+                type="button"
+                onClick={deleteNote}
+                disabled={deleting}
+                className="inline-flex items-center justify-center gap-2 rounded-lg bg-rose-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-rose-800 disabled:opacity-50"
+              >
+                {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                {deleting ? 'Moving…' : 'Move to Recently Deleted'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {error && (
         <div className="mb-6 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-900/60 dark:bg-rose-950/30 dark:text-rose-300">

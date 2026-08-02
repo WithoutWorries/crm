@@ -24,6 +24,7 @@ interface KnowledgeSearchRow {
   knowledgeType: KnowledgeType | null
   sourceUrl: string | null
   capturedAt: Date | null
+  deletedAt: Date | null
   createdAt: Date
   updatedAt: Date
   rank: number
@@ -36,6 +37,7 @@ const knowledgeSelect = {
   knowledgeType: true,
   sourceUrl: true,
   capturedAt: true,
+  deletedAt: true,
   createdAt: true,
   updatedAt: true,
 } as const
@@ -54,13 +56,30 @@ export async function GET(request: NextRequest) {
   const typeParam = request.nextUrl.searchParams.get('type')
   const knowledgeType = isKnowledgeType(typeParam) ? typeParam : null
   const limit = parseLimit(request.nextUrl.searchParams.get('limit'))
+  const showDeleted = request.nextUrl.searchParams.get('deleted') === 'true'
 
   try {
+    if (showDeleted) {
+      const notes = await prisma.note.findMany({
+        where: {
+          userId: session.userId,
+          isKnowledge: true,
+          deletedAt: { not: null },
+        },
+        select: knowledgeSelect,
+        orderBy: { deletedAt: 'desc' },
+        take: limit,
+      })
+
+      return NextResponse.json({ notes, query: '', deleted: true })
+    }
+
     if (!query) {
       const notes = await prisma.note.findMany({
         where: {
           userId: session.userId,
           isKnowledge: true,
+          deletedAt: null,
           ...(knowledgeType ? { knowledgeType } : {}),
         },
         select: knowledgeSelect,
@@ -84,6 +103,7 @@ export async function GET(request: NextRequest) {
         "knowledgeType",
         "sourceUrl",
         "capturedAt",
+        "deletedAt",
         "createdAt",
         "updatedAt",
         ts_rank_cd(
@@ -94,6 +114,7 @@ export async function GET(request: NextRequest) {
       WHERE
         "userId" = ${session.userId}
         AND "isKnowledge" = true
+        AND "deletedAt" IS NULL
         ${typeFilter}
         AND (
           to_tsvector('english', COALESCE("title", '') || ' ' || "content")
