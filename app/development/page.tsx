@@ -129,7 +129,7 @@ export default function DevelopmentPage() {
                   <span className="text-xs font-semibold uppercase tracking-wider">Next</span>
                 </div>
                 <p className="mt-2 text-sm font-semibold text-slate-900 dark:text-fmea-hi">
-                  Recovery smoke test
+                  Access boundary test
                 </p>
               </div>
               <div className="rounded-2xl border border-stone-200 bg-white/80 p-4 dark:border-fmea-border dark:bg-fmea-bg3">

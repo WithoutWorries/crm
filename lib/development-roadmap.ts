@@ -25,16 +25,10 @@ export const ROADMAP_UPDATED_AT = '2 August 2026'
 
 export const STAGE_ZERO_REMAINING_TASKS: RemainingStageTask[] = [
   {
-    title: 'Verify deletion and recovery in production',
-    detail:
-      'Move a note to Recently Deleted, restore it, then permanently remove a disposable test note.',
-    next: true,
-  },
-  {
     title: 'Run the two-user access smoke test',
     detail:
       'Confirm each internal user can access shared consultancy records but cannot read the other user’s private Knowledge notes.',
-    next: false,
+    next: true,
   },
   {
     title: 'Complete an isolated backup restore drill',
@@ -160,6 +154,13 @@ export const ROADMAP_STAGES: RoadmapStage[] = [
 ]
 
 export const PROGRESS_ENTRIES: ProgressEntry[] = [
+  {
+    date: '2 August 2026',
+    title: 'Knowledge deletion and recovery verified in production',
+    detail:
+      'A production note was moved to Recently Deleted, restored successfully and a disposable note was removed permanently.',
+    stage: 0,
+  },
   {
     date: '2 August 2026',
     title: 'Recoverable Knowledge deletion implemented',
