@@ -1,5 +1,5 @@
 const CACHE_PREFIX = 'reference-offline-'
-const CACHE_NAME = `${CACHE_PREFIX}v2`
+const CACHE_NAME = `${CACHE_PREFIX}v3`
 const KNOWLEDGE_SHELL = '/knowledge'
 const STATIC_PATH_PREFIX = '/_next/static/'
 

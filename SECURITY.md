@@ -32,7 +32,7 @@ treated as an access control.
 
 ## Offline device data
 
-An unfinished Knowledge draft and captures awaiting synchronisation are stored in the
+An unfinished Knowledge draft, its optional type, and captures awaiting synchronisation are stored in the
 browser's IndexedDB on that Mac or iPhone. The service worker caches only the application
 shell and static assets; it does not cache search results, API responses or server-held
 Knowledge records.
@@ -45,7 +45,8 @@ again only when the same user signs back in.
 IndexedDB is protected by the device and operating-system account, not by separate
 application-level encryption. Use FileVault and a strong Mac login password, and use an
 iPhone passcode. A locally queued note is not included in server backups until
-synchronisation succeeds.
+synchronisation succeeds. Capture metadata such as Wisdom, Decision or Reference follows
+the same user-scoped local queue as the note text.
 
 ## Secrets
 

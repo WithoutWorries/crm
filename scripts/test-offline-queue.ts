@@ -21,17 +21,17 @@ async function run() {
   await setLastKnowledgeUser(primaryUser)
   assert.equal(await getLastKnowledgeUser(), primaryUser)
 
-  await saveKnowledgeDraft(primaryUser, 'Draft retained between app launches')
-  assert.equal(
-    await getKnowledgeDraft(primaryUser),
-    'Draft retained between app launches'
-  )
-  assert.equal(await getKnowledgeDraft(otherUser), '')
+  await saveKnowledgeDraft(primaryUser, 'Draft retained between app launches', 'WISDOM')
+  const retainedDraft = await getKnowledgeDraft(primaryUser)
+  assert.equal(retainedDraft.content, 'Draft retained between app launches')
+  assert.equal(retainedDraft.knowledgeType, 'WISDOM')
+  assert.equal((await getKnowledgeDraft(otherUser)).content, '')
 
   const firstCapture: OfflineKnowledgeCapture = {
     id: '20000000-0000-4000-8000-000000000001',
     ownerUserId: primaryUser,
     content: 'First offline note',
+    knowledgeType: 'WISDOM',
     createdAt: '2026-07-29T10:00:00.000Z',
     attempts: 0,
     lastAttemptAt: null,
@@ -67,6 +67,7 @@ async function run() {
     primaryQueue.every((capture) => capture.ownerUserId === primaryUser),
     'One user must never receive another user’s device queue'
   )
+  assert.equal(primaryQueue[0].knowledgeType, 'WISDOM')
 
   await markKnowledgeCaptureAttempt(firstCapture, 'Network unavailable')
   const retried = (await listKnowledgeCaptures(primaryUser))[0]
@@ -78,7 +79,8 @@ async function run() {
   assert.equal(await countKnowledgeCaptures(primaryUser), 1)
 
   await saveKnowledgeDraft(primaryUser, '')
-  assert.equal(await getKnowledgeDraft(primaryUser), '')
+  assert.equal((await getKnowledgeDraft(primaryUser)).content, '')
+  assert.equal((await getKnowledgeDraft(primaryUser)).knowledgeType, null)
 
   await clearLastKnowledgeUser()
   assert.equal(await getLastKnowledgeUser(), null)

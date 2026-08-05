@@ -1,0 +1,1 @@
+ALTER TYPE "KnowledgeType" ADD VALUE 'WISDOM';

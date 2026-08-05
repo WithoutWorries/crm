@@ -53,6 +53,7 @@ export function useOfflineKnowledgeQueue(
   onSynced: (note: SyncedKnowledgeNote) => void
 ) {
   const [draft, setDraftState] = useState('')
+  const [draftKnowledgeType, setDraftKnowledgeType] = useState<KnowledgeType | null>(null)
   const [ownerUserId, setOwnerUserId] = useState<string | null>(null)
   const [pendingCount, setPendingCount] = useState(0)
   const [isOnline, setIsOnline] = useState(true)
@@ -89,6 +90,7 @@ export function useOfflineKnowledgeQueue(
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 content: capture.content,
+                knowledgeType: capture.knowledgeType ?? null,
                 clientCaptureId: capture.id,
                 clientCreatedAt: capture.createdAt,
                 ownerUserId: capture.ownerUserId,
@@ -181,7 +183,8 @@ export function useOfflineKnowledgeQueue(
         getKnowledgeDraft(userId),
         countKnowledgeCaptures(userId),
       ])
-      setDraftState((current) => current || storedDraft)
+      setDraftState((current) => current || storedDraft.content)
+      setDraftKnowledgeType((current) => current ?? storedDraft.knowledgeType)
       setDraftLoaded(true)
       setPendingCount(count)
 
@@ -230,14 +233,14 @@ export function useOfflineKnowledgeQueue(
   useEffect(() => {
     if (!ownerUserId || !draftLoaded) return
     const timeout = window.setTimeout(() => {
-      void saveKnowledgeDraft(ownerUserId, draft).catch((error) => {
+      void saveKnowledgeDraft(ownerUserId, draft, draftKnowledgeType).catch((error) => {
         console.error('[OFFLINE_KNOWLEDGE_DRAFT]', error)
         setQueueState('ERROR')
         setStatusDetail('Draft could not be stored safely on this device')
       })
     }, 250)
     return () => window.clearTimeout(timeout)
-  }, [draft, draftLoaded, ownerUserId])
+  }, [draft, draftKnowledgeType, draftLoaded, ownerUserId])
 
   const queueCapture = useCallback(async () => {
     const content = draft.trim()
@@ -261,14 +264,16 @@ export function useOfflineKnowledgeQueue(
         id: createCaptureId(),
         ownerUserId,
         content,
+        knowledgeType: draftKnowledgeType,
         createdAt: new Date().toISOString(),
         attempts: 0,
         lastAttemptAt: null,
         lastError: null,
       }
       await enqueueKnowledgeCapture(capture)
-      await saveKnowledgeDraft(ownerUserId, '')
+      await saveKnowledgeDraft(ownerUserId, '', null)
       setDraftState('')
+      setDraftKnowledgeType(null)
       const count = await updatePendingCount(ownerUserId)
       setQueueState('PENDING')
       setStatusDetail(
@@ -284,11 +289,13 @@ export function useOfflineKnowledgeQueue(
       setStatusDetail('Could not secure this note locally — the text has not been cleared')
       return false
     }
-  }, [draft, ownerUserId, syncQueuedCaptures, updatePendingCount])
+  }, [draft, draftKnowledgeType, ownerUserId, syncQueuedCaptures, updatePendingCount])
 
   return {
     draft,
     setDraft: setDraftState,
+    draftKnowledgeType,
+    setDraftKnowledgeType,
     queueCapture,
     pendingCount,
     isOnline,

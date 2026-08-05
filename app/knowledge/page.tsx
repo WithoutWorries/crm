@@ -15,7 +15,7 @@ import {
   Trash2,
   X,
 } from 'lucide-react'
-import { KNOWLEDGE_TYPE_LABELS } from '@/lib/knowledge'
+import { KNOWLEDGE_TYPES, KNOWLEDGE_TYPE_LABELS } from '@/lib/knowledge'
 import type { KnowledgeType } from '@prisma/client'
 import {
   useOfflineKnowledgeQueue,
@@ -74,6 +74,8 @@ export default function KnowledgePage() {
   const {
     draft: capture,
     setDraft: setCapture,
+    draftKnowledgeType,
+    setDraftKnowledgeType,
     queueCapture,
     pendingCount,
     isOnline,
@@ -231,7 +233,7 @@ export default function KnowledgePage() {
         </div>
       )}
 
-      <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_20rem] lg:gap-12">
+      <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_28rem] lg:gap-10">
         <section className="order-2 min-w-0 lg:order-1" aria-live="polite">
           <div className="mb-3 flex items-center justify-between">
             <h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500 dark:text-fmea-dim">
@@ -333,6 +335,31 @@ export default function KnowledgePage() {
                 </div>
               </div>
             </div>
+            <div className="mt-4">
+              <label
+                htmlFor="capture-knowledge-type"
+                className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500 dark:text-fmea-dim"
+              >
+                Type <span className="normal-case tracking-normal text-slate-400">(optional)</span>
+              </label>
+              <select
+                id="capture-knowledge-type"
+                value={draftKnowledgeType ?? ''}
+                onChange={(event) =>
+                  setDraftKnowledgeType(
+                    (event.target.value || null) as KnowledgeType | null
+                  )
+                }
+                className="w-full rounded-xl border border-stone-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 outline-none transition focus:border-cyan-600 focus:ring-4 focus:ring-cyan-100 dark:border-fmea-border dark:bg-fmea-bg dark:text-fmea-text dark:focus:border-fmea-accent dark:focus:ring-cyan-950/40"
+              >
+                <option value="">Not classified</option>
+                {KNOWLEDGE_TYPES.map((type) => (
+                  <option key={type} value={type}>
+                    {KNOWLEDGE_TYPE_LABELS[type]}
+                  </option>
+                ))}
+              </select>
+            </div>
             <textarea
               id="capture"
               ref={captureRef}
@@ -340,8 +367,8 @@ export default function KnowledgePage() {
               onChange={(event) => setCapture(event.target.value)}
               onKeyDown={handleCaptureKeyDown}
               placeholder="Paste a solution, decision, useful link, calculation, or lesson…"
-              rows={8}
-              className="mt-4 w-full resize-y rounded-xl border border-stone-300 bg-white px-3.5 py-3 text-sm leading-6 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-cyan-600 focus:ring-4 focus:ring-cyan-100 dark:border-fmea-border dark:bg-fmea-bg dark:text-fmea-text dark:placeholder:text-fmea-dim dark:focus:border-fmea-accent dark:focus:ring-cyan-950/40 lg:min-h-52"
+              rows={14}
+              className="mt-4 min-h-80 w-full resize-y rounded-xl border border-stone-300 bg-white px-4 py-4 text-base leading-7 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-cyan-600 focus:ring-4 focus:ring-cyan-100 dark:border-fmea-border dark:bg-fmea-bg dark:text-fmea-text dark:placeholder:text-fmea-dim dark:focus:border-fmea-accent dark:focus:ring-cyan-950/40 lg:min-h-[25rem]"
             />
             <div className="mt-3 flex items-center justify-between gap-3">
               <span className="text-[11px] text-slate-400 dark:text-fmea-dim">⌘ Enter to save</span>

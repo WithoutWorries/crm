@@ -4,7 +4,7 @@ A private knowledge and reference system alongside an engineering consultancy CR
 
 ## Features
 
-- **Private Knowledge**: Frictionless capture, recent notes, full-text search, editing, and recoverable deletion
+- **Private Knowledge**: Frictionless long-form capture with optional type selection, recent notes, full-text search, editing, and recoverable deletion
 - **Offline Knowledge Capture**: Device-first drafts and an automatic, duplicate-safe sync queue
 - **Dashboard**: Overview of open opportunities, pipeline value, overdue tasks, and recent activity
 - **Pipeline Management**: Kanban-style board to track opportunities through 8 stages

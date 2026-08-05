@@ -1,3 +1,5 @@
+import type { KnowledgeType } from '@prisma/client'
+
 const DATABASE_NAME = 'reference-offline'
 const DATABASE_VERSION = 1
 const CAPTURE_STORE = 'knowledge-captures'
@@ -9,15 +11,17 @@ export interface OfflineKnowledgeCapture {
   id: string
   ownerUserId: string
   content: string
+  knowledgeType?: KnowledgeType | null
   createdAt: string
   attempts: number
   lastAttemptAt: string | null
   lastError: string | null
 }
 
-interface OfflineKnowledgeDraft {
+export interface OfflineKnowledgeDraft {
   ownerUserId: string
   content: string
+  knowledgeType: KnowledgeType | null
   updatedAt: string
 }
 
@@ -114,14 +118,19 @@ export async function clearLastKnowledgeUser(): Promise<void> {
   await transactionComplete(transaction)
 }
 
-export async function saveKnowledgeDraft(ownerUserId: string, content: string): Promise<void> {
+export async function saveKnowledgeDraft(
+  ownerUserId: string,
+  content: string,
+  knowledgeType: KnowledgeType | null = null
+): Promise<void> {
   const database = await openDatabase()
   const transaction = database.transaction(DRAFT_STORE, 'readwrite')
   const store = transaction.objectStore(DRAFT_STORE)
-  if (content) {
+  if (content || knowledgeType) {
     store.put({
       ownerUserId,
       content,
+      knowledgeType,
       updatedAt: new Date().toISOString(),
     } satisfies OfflineKnowledgeDraft)
   } else {
@@ -130,7 +139,7 @@ export async function saveKnowledgeDraft(ownerUserId: string, content: string): 
   await transactionComplete(transaction)
 }
 
-export async function getKnowledgeDraft(ownerUserId: string): Promise<string> {
+export async function getKnowledgeDraft(ownerUserId: string): Promise<OfflineKnowledgeDraft> {
   const database = await openDatabase()
   const transaction = database.transaction(DRAFT_STORE, 'readonly')
   const draft = await requestResult(
@@ -138,7 +147,12 @@ export async function getKnowledgeDraft(ownerUserId: string): Promise<string> {
       OfflineKnowledgeDraft | undefined
     >
   )
-  return draft?.content ?? ''
+  return {
+    ownerUserId,
+    content: draft?.content ?? '',
+    knowledgeType: draft?.knowledgeType ?? null,
+    updatedAt: draft?.updatedAt ?? new Date(0).toISOString(),
+  }
 }
 
 export async function enqueueKnowledgeCapture(
