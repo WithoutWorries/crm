@@ -76,14 +76,13 @@ export default function LoginPage() {
 
             <div className="mt-12 max-w-2xl sm:mt-16 lg:mt-28">
               <p className="mb-4 text-xs font-semibold uppercase tracking-[0.18em] text-cyan-800">
-                Working memory, without the overhead
+                Notes, enquiries and analysis
               </p>
               <h1 className="text-4xl font-semibold leading-[1.06] tracking-[-0.04em] text-slate-950 sm:text-5xl lg:text-6xl">
-                Record what would be annoying to rediscover.
+                A practical record of work, decisions and useful information.
               </h1>
               <p className="mt-6 max-w-xl text-base leading-7 text-slate-600 sm:text-lg sm:leading-8">
-                One quiet place for useful knowledge, incoming work, decisions, projects, and the
-                analysis behind them.
+                Keep the details here and find them again when they are needed.
               </p>
             </div>
           </div>
