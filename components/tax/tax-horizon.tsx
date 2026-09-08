@@ -23,6 +23,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { RemittanceUploadDialog } from '@/components/tax/remittance-upload-dialog'
+import { TaxHorizonChart } from '@/components/tax/tax-horizon-chart'
 import { WorkYearSection } from '@/components/tax/work-year-section'
 
 type VatFrequency = 'UNKNOWN' | 'MONTHLY' | 'QUARTERLY'
@@ -71,7 +72,10 @@ export interface TaxDashboardData {
     items: Array<{
       id: string
       label: string
+      type: LiabilityType
       amountCents: number
+      dueDate: string
+      status: 'ESTIMATED' | 'NOTICE_RECEIVED' | 'PAID'
       displayStatus: DisplayStatus
     }>
     projectionLabel: string | null
@@ -328,27 +332,7 @@ export function TaxHorizon({ initialData }: { initialData?: TaxDashboardData }) 
         <MetricCard icon={CircleDollarSign} label="Safe to spend" value={money(data.metrics.safeToSpendCents, currency)} detail="Bank balance less the current reserve" tone={data.metrics.safeToSpendCents < 0 ? 'rose' : 'cyan'} hero />
       </section>
 
-      <section className="overflow-hidden rounded-3xl border border-stone-200 bg-white shadow-sm dark:border-fmea-border dark:bg-fmea-bg2">
-        <div className="flex flex-col gap-2 border-b border-stone-100 px-5 py-5 dark:border-fmea-border sm:flex-row sm:items-end sm:justify-between sm:px-6">
-          <div><p className="text-xs font-semibold uppercase tracking-[0.14em] text-cyan-700 dark:text-fmea-accent">12-month outlook</p><h2 className="mt-1 text-lg font-semibold text-slate-950 dark:text-fmea-hi">Tax horizon</h2></div>
-          <p className="text-xs text-slate-400 dark:text-fmea-dim">Solid amounts are known · dashed amounts are projections</p>
-        </div>
-        <div className="overflow-x-auto px-5 py-5 sm:px-6">
-          <div className="grid min-w-[1050px] grid-cols-12 gap-2">
-            {data.timeline.map((month) => (
-              <div key={month.key} className={cn('relative min-h-36 rounded-2xl border p-3', month.isCurrent ? 'border-cyan-400 bg-cyan-50 ring-2 ring-cyan-100 dark:border-fmea-accent dark:bg-cyan-950/20 dark:ring-cyan-950/60' : month.isPast ? 'border-stone-200 bg-stone-50/70 opacity-60 dark:border-fmea-border dark:bg-fmea-bg3/50' : 'border-stone-200 bg-white dark:border-fmea-border dark:bg-fmea-bg3/30')}>
-                <p className={cn('text-xs font-semibold', month.isCurrent ? 'text-cyan-800 dark:text-fmea-accent' : 'text-slate-500 dark:text-fmea-dim')}>{month.label}</p>
-                {month.isCurrent && <span className="mt-1 inline-block rounded-full bg-cyan-700 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white dark:bg-fmea-accent dark:text-fmea-bg">Now</span>}
-                <div className="mt-3 space-y-2">
-                  {month.items.slice(0, 2).map((item) => <div key={item.id} className={cn('rounded-lg border-l-2 bg-stone-50 px-2 py-1.5 dark:bg-fmea-bg2', item.displayStatus === 'OVERDUE' || item.displayStatus === 'URGENT' ? 'border-rose-500' : item.displayStatus === 'DUE_SOON' ? 'border-amber-500' : item.displayStatus === 'PAID' ? 'border-emerald-500' : 'border-cyan-500')} title={item.label}><p className="truncate text-[10px] text-slate-500 dark:text-fmea-dim">{item.label}</p><p className="mt-0.5 text-xs font-semibold text-slate-900 dark:text-fmea-hi">{money(item.amountCents, currency)}</p></div>)}
-                  {month.projectedCents > 0 && month.items.length === 0 && <div className="rounded-lg border border-dashed border-stone-300 px-2 py-1.5 dark:border-fmea-border" title={month.projectionLabel ?? undefined}><p className="text-[10px] text-slate-400 dark:text-fmea-dim">Projected VAT</p><p className="mt-0.5 text-xs font-semibold text-slate-500 dark:text-fmea-text">{money(month.projectedCents, currency)}</p></div>}
-                  {month.items.length === 0 && month.projectedCents === 0 && <p className="pt-5 text-center text-[10px] text-stone-300 dark:text-fmea-border">No payment recorded</p>}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      <TaxHorizonChart timeline={data.timeline} currency={currency} />
 
       <WorkYearSection reportingStartYear={data.profile.reportingStartYear} refreshKey={data.recentEntries.map((entry) => entry.id).join(':') || 'none'} />
 

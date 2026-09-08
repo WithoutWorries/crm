@@ -156,6 +156,13 @@ export const ROADMAP_STAGES: RoadmapStage[] = [
 export const PROGRESS_ENTRIES: ProgressEntry[] = [
   {
     date: '9 September 2026',
+    title: 'Tax payment horizon made visual',
+    detail:
+      'The 12-month tax outlook now separates MwSt, quarterly income-tax pre-payments and prior-year catch-up payments in a large colour-coded graph, with projections and month-level payment details.',
+    stage: null,
+  },
+  {
+    date: '9 September 2026',
     title: 'Remittance extraction and annual work map implemented',
     detail:
       'Client self-billing PDFs can be sent deliberately to Claude for reviewed extraction of figures, forecast dates and daily hours. Confirmed work records feed a private annual calendar and a financial-data-free print view.',

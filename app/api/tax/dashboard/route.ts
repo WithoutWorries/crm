@@ -138,7 +138,10 @@ export async function GET() {
       items: items.map((item) => ({
         id: item.id,
         label: item.label,
+        type: item.type,
         amountCents: item.amountCents,
+        dueDate: item.dueDate,
+        status: item.status,
         displayStatus: item.displayStatus,
       })),
       projectionLabel: projected?.label ?? null,
