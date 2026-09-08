@@ -21,7 +21,7 @@ export interface RemainingStageTask {
   next: boolean
 }
 
-export const ROADMAP_UPDATED_AT = '2 August 2026'
+export const ROADMAP_UPDATED_AT = '8 September 2026'
 
 export const STAGE_ZERO_REMAINING_TASKS: RemainingStageTask[] = [
   {
@@ -154,6 +154,20 @@ export const ROADMAP_STAGES: RoadmapStage[] = [
 ]
 
 export const PROGRESS_ENTRIES: ProgressEntry[] = [
+  {
+    date: '8 September 2026',
+    title: 'Tax Horizon first implementation prepared',
+    detail:
+      'The private dashboard, three cash-entry modes, calculated VAT reserve, tax notices, urgent payment actions and 12-month visual horizon passed local build and responsive review.',
+    stage: null,
+  },
+  {
+    date: '8 September 2026',
+    title: 'Tax Horizon architecture approved',
+    detail:
+      'A private, user-owned liquidity and tax-liability workspace was approved for implementation without widening the shared CRM access boundary.',
+    stage: null,
+  },
   {
     date: '2 August 2026',
     title: 'Knowledge deletion and recovery verified in production',

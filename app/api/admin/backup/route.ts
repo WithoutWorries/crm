@@ -44,6 +44,9 @@ export async function GET() {
       procurementSuppliers,
       procurementQuotes,
       securityEvents,
+      taxProfiles,
+      taxCashEntries,
+      taxLiabilities,
     ] = await Promise.all([
       prisma.company.findMany({ where: { userId: { in: userIds } }, orderBy: { createdAt: 'asc' } }),
       prisma.contact.findMany({ where: { userId: { in: userIds } }, orderBy: { createdAt: 'asc' } }),
@@ -82,15 +85,24 @@ export async function GET() {
         where: { userId: { in: userIds } },
         orderBy: { createdAt: 'asc' },
       }),
+      prisma.taxProfile.findMany({ where: { userId: session.userId } }),
+      prisma.taxCashEntry.findMany({
+        where: { userId: session.userId },
+        orderBy: { paymentDate: 'asc' },
+      }),
+      prisma.taxLiability.findMany({
+        where: { userId: session.userId },
+        orderBy: { dueDate: 'asc' },
+      }),
     ])
 
     const backup = {
       exportedAt: new Date().toISOString(),
-      schemaVersion: '8.0',
+      schemaVersion: '9.0',
       scope: {
         workspace,
         exportedByUserId: session.userId,
-        privateKnowledgePolicy: 'Only the exporting administrator’s private knowledge is included.',
+        privateKnowledgePolicy: 'Only the exporting administrator’s private knowledge and tax records are included.',
       },
       counts: {
         users: users.length,
@@ -111,6 +123,9 @@ export async function GET() {
         procurementSuppliers: procurementSuppliers.length,
         procurementQuotes: procurementQuotes.length,
         securityEvents: securityEvents.length,
+        taxProfiles: taxProfiles.length,
+        taxCashEntries: taxCashEntries.length,
+        taxLiabilities: taxLiabilities.length,
       },
       data: {
         users,
@@ -131,6 +146,9 @@ export async function GET() {
         procurementSuppliers,
         procurementQuotes,
         securityEvents,
+        taxProfiles,
+        taxCashEntries,
+        taxLiabilities,
       },
     }
 

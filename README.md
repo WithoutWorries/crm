@@ -6,6 +6,7 @@ A private knowledge and reference system alongside an engineering consultancy CR
 
 - **Private Knowledge**: Frictionless long-form capture with optional type selection, recent notes, full-text search, editing, and recoverable deletion
 - **Offline Knowledge Capture**: Device-first drafts and an automatic, duplicate-safe sync queue
+- **Tax Horizon**: Private cash-basis VAT tracking, tax notices, payment alerts, a 12-month horizon, and a safe-to-spend reserve
 - **Dashboard**: Overview of open opportunities, pipeline value, overdue tasks, and recent activity
 - **Pipeline Management**: Kanban-style board to track opportunities through 8 stages
 - **Companies**: Manage client companies with industry, regulatory, and contact information
@@ -83,6 +84,10 @@ two internal users. CRM and enquiry records are shared within that workspace; Kn
 records remain private to their author. Procurement records also remain user-specific.
 Customer accounts must not be added to this workspace. Project-level customer isolation
 is a Stage 7 feature and a prerequisite for external access.
+
+Tax Horizon records are private to their owner, including for administrators. The
+administrator backup includes only the exporting administrator's tax records. The
+dashboard is a planning aid and does not replace a tax notice or professional advice.
 
 Knowledge drafts and submitted-but-unsynchronised captures are stored in IndexedDB on
 the current device. They are scoped to the last authenticated user and are removed from
@@ -230,6 +235,12 @@ Routes require a signed session unless explicitly documented as a token- or secr
 - `GET/POST /api/activities` - List and create activities
 - `GET/PUT/DELETE /api/activities/[id]` - Activity detail operations
 - `GET /api/dashboard` - Dashboard stats and aggregations
+- `GET /api/tax/dashboard` - Private Tax Horizon metrics, alerts and timeline
+- `GET/POST /api/tax/entries` - Private cash received and expense VAT entries
+- `DELETE /api/tax/entries/[id]` - Remove a private cash entry and recalculate VAT
+- `GET/POST /api/tax/liabilities` - Private notices, pre-payments and settlements
+- `PATCH/DELETE /api/tax/liabilities/[id]` - Update payment state or remove a private liability
+- `GET/PATCH /api/tax/settings` - Private Tax Horizon balance and filing settings
 
 ## Notes
 

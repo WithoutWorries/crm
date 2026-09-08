@@ -49,18 +49,18 @@ const ZONES: BoundaryZone[] = [
   {
     id: 'personal',
     label: 'Personal vault',
-    description: 'Knowledge and Procurement',
+    description: 'Knowledge, Tax Horizon and Procurement',
     icon: BookOpen,
     access: {
       ADMIN: {
         state: 'PRIVATE',
         scope: 'Own records only',
-        note: 'Administrator status does not expose another user’s private Knowledge.',
+        note: 'Administrator status does not expose another user’s private Knowledge or tax records.',
       },
       MEMBER: {
         state: 'PRIVATE',
         scope: 'Own records only',
-        note: 'Private notes and procurement records stay with their author.',
+        note: 'Private notes, tax records and procurement records stay with their author.',
       },
       CUSTOMER: {
         state: 'NONE',

@@ -7,6 +7,7 @@ import {
   CheckSquare,
   Kanban,
   LayoutDashboard,
+  Landmark,
   Target,
   Users,
   Zap,
@@ -47,6 +48,7 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
   {
     label: 'Analysis',
     items: [
+      { href: '/tax', icon: Landmark, label: 'Tax Horizon' },
       { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
       { href: '/procurement', icon: Briefcase, label: 'Procurement' },
     ],

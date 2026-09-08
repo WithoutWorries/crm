@@ -2,7 +2,7 @@
   "name": "Reference — Consulting Workspace",
   "short_name": "Reference",
   "description": "Private knowledge, enquiries and engineering analysis",
-  "start_url": "/knowledge",
+  "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "background_color": "#f7f6f2",

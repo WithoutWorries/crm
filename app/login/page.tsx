@@ -31,7 +31,7 @@ export default function LoginPage() {
       })
 
       if (response.ok) {
-        router.push('/knowledge')
+        router.push('/tax')
         return
       }
 

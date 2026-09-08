@@ -57,7 +57,7 @@ export function TopBar({ sidebarCollapsed }: TopBarProps) {
           >
             {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
-          <Link href="/knowledge" className="text-base font-bold tracking-tight text-slate-900 dark:text-fmea-hi md:hidden">
+          <Link href="/tax" className="text-base font-bold tracking-tight text-slate-900 dark:text-fmea-hi md:hidden">
             Reference
           </Link>
         </div>

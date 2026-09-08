@@ -65,7 +65,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
         )}
       >
         <Link
-          href="/knowledge"
+          href="/tax"
           className={cn('flex min-w-0 items-center', collapsed ? 'justify-center' : 'gap-3')}
           title={collapsed ? 'Reference' : undefined}
         >

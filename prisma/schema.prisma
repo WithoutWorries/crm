@@ -202,6 +202,38 @@ enum KnowledgeType {
   OBSERVATION
 }
 
+enum TaxEntryType {
+  ISSUED_INVOICE
+  CLIENT_REMITTANCE
+  EXPENSE_VAT
+}
+
+enum TaxLiabilityType {
+  VAT
+  INCOME_TAX_PREPAYMENT
+  PRIOR_YEAR_SETTLEMENT
+  OTHER
+}
+
+enum TaxLiabilitySource {
+  CALCULATED
+  ESTIMATE
+  TAX_NOTICE
+  ADVISER
+}
+
+enum TaxLiabilityStatus {
+  ESTIMATED
+  NOTICE_RECEIVED
+  PAID
+}
+
+enum VatFilingFrequency {
+  UNKNOWN
+  MONTHLY
+  QUARTERLY
+}
+
 model User {
   id                     String    @id @default(cuid())
   workspaceId            String
@@ -228,6 +260,9 @@ model User {
   procurementSuppliers ProcurementSupplier[]
   sessions             Session[]
   securityEvents       SecurityEvent[]
+  taxProfile           TaxProfile?
+  taxCashEntries       TaxCashEntry[]
+  taxLiabilities       TaxLiability[]
   workspace            Workspace             @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
 
   @@index([workspaceId])
@@ -624,4 +659,64 @@ model ProcurementQuote {
   @@unique([projectId, supplierId])
   @@index([projectId])
   @@index([supplierId])
+}
+
+model TaxProfile {
+  id                    String             @id @default(cuid())
+  userId                String             @unique
+  bankBalance           Decimal            @default(0) @db.Decimal(14, 2)
+  currency              String             @default("EUR")
+  reportingStartYear    Int                @default(2011)
+  vatFilingFrequency    VatFilingFrequency @default(QUARTERLY)
+  hasPermanentExtension Boolean            @default(false)
+  createdAt             DateTime           @default(now())
+  updatedAt             DateTime           @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model TaxCashEntry {
+  id               String       @id @default(cuid())
+  userId           String
+  type             TaxEntryType
+  description      String?
+  reference        String?
+  netAmount        Decimal      @db.Decimal(14, 2)
+  vatAmount        Decimal      @db.Decimal(14, 2)
+  grossAmount      Decimal      @db.Decimal(14, 2)
+  vatRate          Int?
+  paymentDate      DateTime
+  clientCalculated Boolean      @default(false)
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, paymentDate])
+  @@index([userId, type])
+}
+
+model TaxLiability {
+  id             String             @id @default(cuid())
+  userId         String
+  type           TaxLiabilityType
+  source         TaxLiabilitySource @default(ESTIMATE)
+  status         TaxLiabilityStatus @default(ESTIMATED)
+  label          String
+  amount         Decimal            @db.Decimal(14, 2)
+  dueDate        DateTime
+  noticeDate     DateTime?
+  paidAt         DateTime?
+  taxYear        Int?
+  periodKey      String?
+  calculationKey String?
+  notes          String?
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, calculationKey])
+  @@index([userId, dueDate])
+  @@index([userId, type, status])
 }
