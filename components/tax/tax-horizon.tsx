@@ -366,8 +366,8 @@ export function TaxHorizon({ initialData }: { initialData?: TaxDashboardData }) 
         <aside className="rounded-3xl border border-slate-800 bg-slate-900 p-5 text-white shadow-sm dark:border-fmea-border dark:bg-fmea-nav sm:p-6">
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-cyan-300">Quick actions</p><h2 className="mt-1 text-lg font-semibold">Record a change</h2><p className="mt-2 text-sm leading-6 text-slate-300">The tax reserve follows the bank payment date. A client remittance can be recorded earlier.</p>
           <div className="mt-5 space-y-2">
-            <QuickAction icon={ArrowDownToLine} label="Log cash received" detail="Issued invoice" onClick={() => setDialog('income')} />
             <QuickAction icon={FileCheck2} label="Record client remittance" detail="Gutschrift · payment may follow" onClick={() => setDialog('remittance')} />
+            <QuickAction icon={ArrowDownToLine} label="Log cash received" detail="Issued invoice" onClick={() => setDialog('income')} />
             <QuickAction icon={ReceiptText} label="Log expense VAT" detail="Vorsteuer" onClick={() => setDialog('expense')} />
             <QuickAction icon={CalendarClock} label="Enter tax notice" detail="Pre-payment or demand" onClick={() => setDialog('liability')} />
           </div>
