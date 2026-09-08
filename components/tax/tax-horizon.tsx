@@ -83,13 +83,14 @@ export interface TaxDashboardData {
     vatCents: number
     grossCents: number
     vatRate: number | null
-    paymentDate: string
+    documentDate: string | null
+    paymentDate: string | null
     clientCalculated: boolean
   }>
   calculationNote: string
 }
 
-type Dialog = 'income' | 'remittance' | 'expense' | 'liability' | 'settings' | null
+type Dialog = 'income' | 'remittance' | 'expense' | 'liability' | 'settings' | 'payment' | null
 type LiabilityTab = 'current' | 'upcoming' | 'prior'
 
 const FIELD =
@@ -202,6 +203,7 @@ export function TaxHorizon({ initialData }: { initialData?: TaxDashboardData }) 
   const [savingId, setSavingId] = useState<string | null>(null)
   const [removingEntryId, setRemovingEntryId] = useState<string | null>(null)
   const [removingLiabilityId, setRemovingLiabilityId] = useState<string | null>(null)
+  const [selectedRemittanceId, setSelectedRemittanceId] = useState<string | null>(null)
 
   const load = async () => {
     try {
@@ -362,10 +364,10 @@ export function TaxHorizon({ initialData }: { initialData?: TaxDashboardData }) 
         </div>
 
         <aside className="rounded-3xl border border-slate-800 bg-slate-900 p-5 text-white shadow-sm dark:border-fmea-border dark:bg-fmea-nav sm:p-6">
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-cyan-300">Quick actions</p><h2 className="mt-1 text-lg font-semibold">Record a change</h2><p className="mt-2 text-sm leading-6 text-slate-300">Use the bank payment date. Invoice issue dates do not drive this planning view.</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-cyan-300">Quick actions</p><h2 className="mt-1 text-lg font-semibold">Record a change</h2><p className="mt-2 text-sm leading-6 text-slate-300">The tax reserve follows the bank payment date. A client remittance can be recorded earlier.</p>
           <div className="mt-5 space-y-2">
             <QuickAction icon={ArrowDownToLine} label="Log cash received" detail="Issued invoice" onClick={() => setDialog('income')} />
-            <QuickAction icon={FileCheck2} label="Log client remittance" detail="Gutschrift" onClick={() => setDialog('remittance')} />
+            <QuickAction icon={FileCheck2} label="Record client remittance" detail="Gutschrift · payment may follow" onClick={() => setDialog('remittance')} />
             <QuickAction icon={ReceiptText} label="Log expense VAT" detail="Vorsteuer" onClick={() => setDialog('expense')} />
             <QuickAction icon={CalendarClock} label="Enter tax notice" detail="Pre-payment or demand" onClick={() => setDialog('liability')} />
           </div>
@@ -373,11 +375,58 @@ export function TaxHorizon({ initialData }: { initialData?: TaxDashboardData }) 
         </aside>
       </section>
 
-      {data.recentEntries.length > 0 && <section className="rounded-3xl border border-stone-200 bg-white p-5 shadow-sm dark:border-fmea-border dark:bg-fmea-bg2 sm:p-6"><div className="flex items-center justify-between"><div><p className="text-xs font-semibold uppercase tracking-[0.14em] text-cyan-700 dark:text-fmea-accent">Audit trail</p><h2 className="mt-1 text-lg font-semibold text-slate-950 dark:text-fmea-hi">Recent cash entries</h2></div><Banknote className="h-5 w-5 text-stone-300 dark:text-fmea-border" /></div><div className="mt-4 grid gap-2 lg:grid-cols-2">{data.recentEntries.slice(0, 6).map((entry) => <div key={entry.id} className="flex items-center justify-between gap-4 rounded-2xl border border-stone-100 bg-stone-50/70 px-4 py-3 dark:border-fmea-border dark:bg-fmea-bg3/50"><div className="min-w-0"><p className="truncate text-sm font-semibold text-slate-800 dark:text-fmea-text">{entry.description || (entry.type === 'EXPENSE_VAT' ? 'Business expense' : entry.type === 'CLIENT_REMITTANCE' ? 'Client remittance' : 'Issued invoice')}</p><p className="mt-0.5 text-xs text-slate-400 dark:text-fmea-dim">{dateLabel(entry.paymentDate)} · VAT {money(entry.vatCents, currency)}{entry.clientCalculated ? ' · client calculated' : ''}</p></div><div className="flex shrink-0 items-center gap-2"><p className={cn('text-sm font-semibold tabular-nums', entry.type === 'EXPENSE_VAT' ? 'text-rose-600 dark:text-rose-300' : 'text-slate-900 dark:text-fmea-hi')}>{entry.type === 'EXPENSE_VAT' ? '−' : '+'}{money(entry.grossCents, currency)}</p><button type="button" onClick={() => void removeEntry(entry.id)} disabled={removingEntryId === entry.id} className="rounded-lg p-1.5 text-stone-300 hover:bg-rose-50 hover:text-rose-600 disabled:opacity-50 dark:text-fmea-border dark:hover:bg-rose-950/30 dark:hover:text-rose-300" title="Remove cash entry" aria-label="Remove cash entry">{removingEntryId === entry.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}</button></div></div>)}</div></section>}
+      {data.recentEntries.length > 0 && (
+        <section className="rounded-3xl border border-stone-200 bg-white p-5 shadow-sm dark:border-fmea-border dark:bg-fmea-bg2 sm:p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-cyan-700 dark:text-fmea-accent">Audit trail</p>
+              <h2 className="mt-1 text-lg font-semibold text-slate-950 dark:text-fmea-hi">Recent records</h2>
+            </div>
+            <Banknote className="h-5 w-5 text-stone-300 dark:text-fmea-border" />
+          </div>
+          <div className="mt-4 grid gap-2 lg:grid-cols-2">
+            {data.recentEntries.slice(0, 6).map((entry) => {
+              const paymentPending = entry.type === 'CLIENT_REMITTANCE' && !entry.paymentDate
+              return (
+                <div key={entry.id} className="flex flex-col gap-3 rounded-2xl border border-stone-100 bg-stone-50/70 px-4 py-3 dark:border-fmea-border dark:bg-fmea-bg3/50 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p className="truncate text-sm font-semibold text-slate-800 dark:text-fmea-text">
+                        {entry.description || (entry.type === 'EXPENSE_VAT' ? 'Business expense' : entry.type === 'CLIENT_REMITTANCE' ? 'Client remittance' : 'Issued invoice')}
+                      </p>
+                      {paymentPending && <span className="shrink-0 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[9px] font-semibold text-amber-700 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-300">Payment pending</span>}
+                    </div>
+                    <p className="mt-0.5 text-xs text-slate-400 dark:text-fmea-dim">
+                      {entry.paymentDate
+                        ? `${dateLabel(entry.paymentDate)} · VAT ${money(entry.vatCents, currency)}`
+                        : `Remittance ${entry.documentDate ? dateLabel(entry.documentDate) : 'date not recorded'} · VAT not yet reserved`}
+                      {entry.clientCalculated ? ' · client calculated' : ''}
+                    </p>
+                  </div>
+                  <div className="flex shrink-0 items-center justify-between gap-2 sm:justify-end">
+                    <p className={cn('text-sm font-semibold tabular-nums', entry.type === 'EXPENSE_VAT' ? 'text-rose-600 dark:text-rose-300' : paymentPending ? 'text-amber-700 dark:text-amber-300' : 'text-slate-900 dark:text-fmea-hi')}>
+                      {entry.type === 'EXPENSE_VAT' ? '−' : paymentPending ? 'Expected ' : '+'}{money(entry.grossCents, currency)}
+                    </p>
+                    {paymentPending && (
+                      <button type="button" onClick={() => { setSelectedRemittanceId(entry.id); setDialog('payment') }} className="rounded-lg border border-cyan-200 bg-cyan-50 px-2.5 py-1.5 text-[10px] font-semibold text-cyan-800 hover:bg-cyan-100 dark:border-cyan-900/60 dark:bg-cyan-950/30 dark:text-cyan-300">
+                        Record payment
+                      </button>
+                    )}
+                    <button type="button" onClick={() => void removeEntry(entry.id)} disabled={removingEntryId === entry.id} className="rounded-lg p-1.5 text-stone-300 hover:bg-rose-50 hover:text-rose-600 disabled:opacity-50 dark:text-fmea-border dark:hover:bg-rose-950/30 dark:hover:text-rose-300" title="Remove cash entry" aria-label="Remove cash entry">
+                      {removingEntryId === entry.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                    </button>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </section>
+      )}
 
       {(dialog === 'income' || dialog === 'remittance' || dialog === 'expense') && <EntryDialog mode={dialog} onClose={() => setDialog(null)} onSaved={async () => { setDialog(null); await load() }} />}
       {dialog === 'liability' && <LiabilityDialog onClose={() => setDialog(null)} onSaved={async () => { setDialog(null); await load() }} />}
       {dialog === 'settings' && <SettingsDialog profile={data.profile} onClose={() => setDialog(null)} onSaved={async () => { setDialog(null); await load() }} />}
+      {dialog === 'payment' && selectedRemittanceId && <PaymentDialog entryId={selectedRemittanceId} onClose={() => { setDialog(null); setSelectedRemittanceId(null) }} onSaved={async () => { setDialog(null); setSelectedRemittanceId(null); await load() }} />}
     </div>
   )
 }
@@ -401,20 +450,100 @@ function EntryDialog({ mode, onClose, onSaved }: { mode: 'income' | 'remittance'
   const [vatRate, setVatRate] = useState('19')
   const isInvoice = mode === 'income'
   const isExpense = mode === 'expense'
-  const title = isInvoice ? 'Log cash received' : isExpense ? 'Log expense VAT' : 'Log client remittance'
-  const description = isInvoice ? 'Record the date the invoice was actually paid.' : isExpense ? 'Record deductible VAT from a paid business expense.' : 'Copy the net, VAT and gross figures from the client’s Gutschrift.'
+  const isRemittance = mode === 'remittance'
+  const title = isInvoice ? 'Log cash received' : isExpense ? 'Log expense VAT' : 'Record client remittance'
+  const description = isInvoice
+    ? 'Record the date the invoice was actually paid.'
+    : isExpense
+      ? 'Record deductible VAT from a paid business expense.'
+      : 'Record the Gutschrift now. Add the bank payment later if it has not arrived yet.'
   const preview = isInvoice && net ? Number(net.replace(',', '.')) * (1 + Number(vatRate) / 100) : null
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault(); setSaving(true); setError('')
     const form = new FormData(event.currentTarget)
     try {
-      await jsonRequest('/api/tax/entries', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: isInvoice ? 'ISSUED_INVOICE' : isExpense ? 'EXPENSE_VAT' : 'CLIENT_REMITTANCE', paymentDate: form.get('paymentDate'), netAmount: net, vatAmount: isInvoice ? undefined : vat, grossAmount: mode === 'remittance' ? gross : undefined, vatRate: isInvoice ? Number(vatRate) : undefined, description: form.get('description'), reference: form.get('reference') }) })
+      await jsonRequest('/api/tax/entries', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: isInvoice ? 'ISSUED_INVOICE' : isExpense ? 'EXPENSE_VAT' : 'CLIENT_REMITTANCE',
+          documentDate: isRemittance ? form.get('documentDate') : undefined,
+          paymentDate: form.get('paymentDate'),
+          netAmount: net,
+          vatAmount: isInvoice ? undefined : vat,
+          grossAmount: isRemittance ? gross : undefined,
+          vatRate: isInvoice ? Number(vatRate) : undefined,
+          description: form.get('description'),
+          reference: form.get('reference'),
+        }),
+      })
       await onSaved()
     } catch (caught) { setError(caught instanceof Error ? caught.message : 'Unable to save') } finally { setSaving(false) }
   }
 
-  return <Modal title={title} description={description} onClose={onClose}><form onSubmit={submit} className="space-y-5"><div className="grid gap-4 sm:grid-cols-2"><label className={LABEL}>Payment date<input className={FIELD} name="paymentDate" type="date" defaultValue={todayInput()} required /></label><label className={LABEL}>Reference <span className="font-normal text-slate-400">(optional)</span><input className={FIELD} name="reference" maxLength={120} placeholder="Invoice or client reference" /></label></div><label className={LABEL}>Description <span className="font-normal text-slate-400">(optional)</span><input className={FIELD} name="description" maxLength={500} placeholder={isExpense ? 'Software, travel, equipment…' : 'Client or work package'} /></label><div className={cn('grid gap-4', mode === 'remittance' ? 'sm:grid-cols-3' : 'sm:grid-cols-2')}><label className={LABEL}>Net amount (€)<input className={FIELD} value={net} onChange={(event) => setNet(event.target.value)} inputMode="decimal" placeholder="0.00" required /></label>{isInvoice ? <label className={LABEL}>VAT rate<select className={FIELD} value={vatRate} onChange={(event) => setVatRate(event.target.value)}><option value="19">19%</option><option value="7">7%</option><option value="0">0%</option></select></label> : <label className={LABEL}>VAT amount (€)<input className={FIELD} value={vat} onChange={(event) => setVat(event.target.value)} inputMode="decimal" placeholder="0.00" required /></label>}{mode === 'remittance' && <label className={LABEL}>Gross amount (€)<input className={FIELD} value={gross} onChange={(event) => setGross(event.target.value)} inputMode="decimal" placeholder="0.00" required /></label>}</div>{preview !== null && Number.isFinite(preview) && <div className="rounded-2xl border border-cyan-100 bg-cyan-50 px-4 py-3 text-sm text-cyan-900 dark:border-cyan-900/60 dark:bg-cyan-950/20 dark:text-cyan-200">Calculated gross: <strong>{new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'EUR' }).format(preview)}</strong></div>}{error && <p className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</p>}<div className="flex justify-end"><SubmitButton saving={saving}>Save entry</SubmitButton></div></form></Modal>
+  return (
+    <Modal title={title} description={description} onClose={onClose}>
+      <form onSubmit={submit} className="space-y-5">
+        <div className="grid gap-4 sm:grid-cols-2">
+          {isRemittance ? (
+            <>
+              <label className={LABEL}>Remittance date<input className={FIELD} name="documentDate" type="date" defaultValue={todayInput()} required /></label>
+              <label className={LABEL}>Payment received <span className="font-normal text-slate-400">(optional)</span><input className={FIELD} name="paymentDate" type="date" /></label>
+            </>
+          ) : (
+            <label className={LABEL}>Payment date<input className={FIELD} name="paymentDate" type="date" defaultValue={todayInput()} required /></label>
+          )}
+          <label className={LABEL}>Reference <span className="font-normal text-slate-400">(optional)</span><input className={FIELD} name="reference" maxLength={120} placeholder="Invoice or client reference" /></label>
+        </div>
+        {isRemittance && <p className="-mt-2 text-xs leading-5 text-slate-500 dark:text-fmea-dim">Leave payment received blank until the money reaches the bank. No VAT will be reserved before then.</p>}
+        <label className={LABEL}>Description <span className="font-normal text-slate-400">(optional)</span><input className={FIELD} name="description" maxLength={500} placeholder={isExpense ? 'Software, travel, equipment…' : 'Client or work package'} /></label>
+        <div className={cn('grid gap-4', isRemittance ? 'sm:grid-cols-3' : 'sm:grid-cols-2')}>
+          <label className={LABEL}>Net amount (€)<input className={FIELD} value={net} onChange={(event) => setNet(event.target.value)} inputMode="decimal" placeholder="0.00" required /></label>
+          {isInvoice ? (
+            <label className={LABEL}>VAT rate<select className={FIELD} value={vatRate} onChange={(event) => setVatRate(event.target.value)}><option value="19">19%</option><option value="7">7%</option><option value="0">0%</option></select></label>
+          ) : (
+            <label className={LABEL}>VAT amount (€)<input className={FIELD} value={vat} onChange={(event) => setVat(event.target.value)} inputMode="decimal" placeholder="0.00" required /></label>
+          )}
+          {isRemittance && <label className={LABEL}>Gross amount (€)<input className={FIELD} value={gross} onChange={(event) => setGross(event.target.value)} inputMode="decimal" placeholder="0.00" required /></label>}
+        </div>
+        {preview !== null && Number.isFinite(preview) && <div className="rounded-2xl border border-cyan-100 bg-cyan-50 px-4 py-3 text-sm text-cyan-900 dark:border-cyan-900/60 dark:bg-cyan-950/20 dark:text-cyan-200">Calculated gross: <strong>{new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'EUR' }).format(preview)}</strong></div>}
+        {error && <p className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</p>}
+        <div className="flex justify-end"><SubmitButton saving={saving}>Save entry</SubmitButton></div>
+      </form>
+    </Modal>
+  )
+}
+
+function PaymentDialog({ entryId, onClose, onSaved }: { entryId: string; onClose: () => void; onSaved: () => Promise<void> }) {
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+  const submit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault(); setSaving(true); setError('')
+    const form = new FormData(event.currentTarget)
+    try {
+      await jsonRequest(`/api/tax/entries/${entryId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'recordPayment', paymentDate: form.get('paymentDate') }),
+      })
+      await onSaved()
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : 'Unable to record the payment')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <Modal title="Record payment received" description="Use the date the money reached the bank. The VAT reserve will update after saving." onClose={onClose}>
+      <form onSubmit={submit} className="space-y-5">
+        <label className={LABEL}>Payment received date<input className={FIELD} name="paymentDate" type="date" defaultValue={todayInput()} required /></label>
+        {error && <p className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</p>}
+        <div className="flex justify-end"><SubmitButton saving={saving}>Record payment</SubmitButton></div>
+      </form>
+    </Modal>
+  )
 }
 
 function LiabilityDialog({ onClose, onSaved }: { onClose: () => void; onSaved: () => Promise<void> }) {

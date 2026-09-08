@@ -20,7 +20,7 @@ export async function GET() {
 
   const entries = await prisma.taxCashEntry.findMany({
     where: { userId: session.userId },
-    orderBy: [{ paymentDate: 'desc' }, { createdAt: 'desc' }],
+    orderBy: { createdAt: 'desc' },
     take: 100,
   })
   return NextResponse.json(entries, { headers: { 'Cache-Control': 'no-store' } })
@@ -36,10 +36,20 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Select a valid entry type' }, { status: 400 })
   }
 
-  const paymentDate = parseDateOnly(body.paymentDate)
+  const paymentDate = body.paymentDate ? parseDateOnly(body.paymentDate) : null
+  const documentDate = body.documentDate ? parseDateOnly(body.documentDate) : null
   const netCents = parseMoneyToCents(body.netAmount)
-  if (!paymentDate || netCents === null) {
-    return NextResponse.json({ error: 'Enter a valid payment date and net amount' }, { status: 400 })
+  if (netCents === null) {
+    return NextResponse.json({ error: 'Enter a valid net amount' }, { status: 400 })
+  }
+  if (body.type === 'CLIENT_REMITTANCE' && !documentDate) {
+    return NextResponse.json({ error: 'Enter the remittance date' }, { status: 400 })
+  }
+  if (body.paymentDate && !paymentDate) {
+    return NextResponse.json({ error: 'Enter a valid payment date' }, { status: 400 })
+  }
+  if (body.type !== 'CLIENT_REMITTANCE' && !paymentDate) {
+    return NextResponse.json({ error: 'Enter the date the payment reached the bank' }, { status: 400 })
   }
 
   let vatCents: number
@@ -84,6 +94,7 @@ export async function POST(request: NextRequest) {
       vatAmount: decimalFromCents(vatCents),
       grossAmount: decimalFromCents(grossCents),
       vatRate,
+      documentDate,
       paymentDate,
       clientCalculated: body.type === 'CLIENT_REMITTANCE',
     },

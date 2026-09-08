@@ -47,7 +47,7 @@ export async function GET() {
     }),
     prisma.taxCashEntry.findMany({
       where: { userId: session.userId },
-      orderBy: [{ paymentDate: 'desc' }, { createdAt: 'desc' }],
+      orderBy: { createdAt: 'desc' },
       take: 20,
     }),
   ])
@@ -157,7 +157,8 @@ export async function GET() {
     vatCents: centsFromDecimal(entry.vatAmount),
     grossCents: centsFromDecimal(entry.grossAmount),
     vatRate: entry.vatRate,
-    paymentDate: toDateOnly(entry.paymentDate),
+    documentDate: entry.documentDate ? toDateOnly(entry.documentDate) : null,
+    paymentDate: entry.paymentDate ? toDateOnly(entry.paymentDate) : null,
     clientCalculated: entry.clientCalculated,
   }))
 

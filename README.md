@@ -237,7 +237,7 @@ Routes require a signed session unless explicitly documented as a token- or secr
 - `GET /api/dashboard` - Dashboard stats and aggregations
 - `GET /api/tax/dashboard` - Private Tax Horizon metrics, alerts and timeline
 - `GET/POST /api/tax/entries` - Private cash received and expense VAT entries
-- `DELETE /api/tax/entries/[id]` - Remove a private cash entry and recalculate VAT
+- `PATCH/DELETE /api/tax/entries/[id]` - Record a remittance payment or remove an entry and recalculate VAT
 - `GET/POST /api/tax/liabilities` - Private notices, pre-payments and settlements
 - `PATCH/DELETE /api/tax/liabilities/[id]` - Update payment state or remove a private liability
 - `GET/PATCH /api/tax/settings` - Private Tax Horizon balance and filing settings

@@ -685,7 +685,8 @@ model TaxCashEntry {
   vatAmount        Decimal      @db.Decimal(14, 2)
   grossAmount      Decimal      @db.Decimal(14, 2)
   vatRate          Int?
-  paymentDate      DateTime
+  documentDate     DateTime?
+  paymentDate      DateTime?
   clientCalculated Boolean      @default(false)
   createdAt        DateTime     @default(now())
   updatedAt        DateTime     @updatedAt

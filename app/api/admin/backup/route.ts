@@ -88,7 +88,7 @@ export async function GET() {
       prisma.taxProfile.findMany({ where: { userId: session.userId } }),
       prisma.taxCashEntry.findMany({
         where: { userId: session.userId },
-        orderBy: { paymentDate: 'asc' },
+        orderBy: { createdAt: 'asc' },
       }),
       prisma.taxLiability.findMany({
         where: { userId: session.userId },
@@ -98,7 +98,7 @@ export async function GET() {
 
     const backup = {
       exportedAt: new Date().toISOString(),
-      schemaVersion: '9.0',
+      schemaVersion: '9.1',
       scope: {
         workspace,
         exportedByUserId: session.userId,

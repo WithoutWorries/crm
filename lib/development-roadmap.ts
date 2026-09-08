@@ -156,6 +156,13 @@ export const ROADMAP_STAGES: RoadmapStage[] = [
 export const PROGRESS_ENTRIES: ProgressEntry[] = [
   {
     date: '8 September 2026',
+    title: 'Remittance and payment dates separated',
+    detail:
+      'A client Gutschrift can now be recorded before payment arrives. It remains pending and does not enter the VAT reserve until the bank receipt date is confirmed.',
+    stage: null,
+  },
+  {
+    date: '8 September 2026',
     title: 'Tax Horizon first implementation prepared',
     detail:
       'The private dashboard, three cash-entry modes, calculated VAT reserve, tax notices, urgent payment actions and 12-month visual horizon passed local build and responsive review.',

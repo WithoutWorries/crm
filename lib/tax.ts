@@ -34,6 +34,7 @@ export async function rebuildCalculatedVat(userId: string): Promise<void> {
 
     const totals = new Map<string, { cents: number; period: VatPeriod }>()
     for (const entry of entries) {
+      if (!entry.paymentDate) continue
       const period = getVatPeriod(
         entry.paymentDate,
         profile.vatFilingFrequency,
