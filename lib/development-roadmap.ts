@@ -21,7 +21,7 @@ export interface RemainingStageTask {
   next: boolean
 }
 
-export const ROADMAP_UPDATED_AT = '8 September 2026'
+export const ROADMAP_UPDATED_AT = '9 September 2026'
 
 export const STAGE_ZERO_REMAINING_TASKS: RemainingStageTask[] = [
   {
@@ -154,6 +154,13 @@ export const ROADMAP_STAGES: RoadmapStage[] = [
 ]
 
 export const PROGRESS_ENTRIES: ProgressEntry[] = [
+  {
+    date: '9 September 2026',
+    title: 'Remittance extraction and annual work map implemented',
+    detail:
+      'Client self-billing PDFs can be sent deliberately to Claude for reviewed extraction of figures, forecast dates and daily hours. Confirmed work records feed a private annual calendar and a financial-data-free print view.',
+    stage: null,
+  },
   {
     date: '8 September 2026',
     title: 'Remittance and payment dates separated',

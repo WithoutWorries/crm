@@ -10,6 +10,7 @@ import {
   ChevronRight,
   CircleDollarSign,
   FileCheck2,
+  FileUp,
   Landmark,
   Loader2,
   LockKeyhole,
@@ -21,6 +22,8 @@ import {
   X,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { RemittanceUploadDialog } from '@/components/tax/remittance-upload-dialog'
+import { WorkYearSection } from '@/components/tax/work-year-section'
 
 type VatFrequency = 'UNKNOWN' | 'MONTHLY' | 'QUARTERLY'
 type LiabilityType = 'VAT' | 'INCOME_TAX_PREPAYMENT' | 'PRIOR_YEAR_SETTLEMENT' | 'OTHER'
@@ -84,13 +87,16 @@ export interface TaxDashboardData {
     grossCents: number
     vatRate: number | null
     documentDate: string | null
+    expectedPaymentDate: string | null
     paymentDate: string | null
     clientCalculated: boolean
+    aiExtracted: boolean
+    workSessionCount: number
   }>
   calculationNote: string
 }
 
-type Dialog = 'income' | 'remittance' | 'expense' | 'liability' | 'settings' | 'payment' | null
+type Dialog = 'income' | 'remittance' | 'remittance-upload' | 'expense' | 'liability' | 'settings' | 'payment' | null
 type LiabilityTab = 'current' | 'upcoming' | 'prior'
 
 const FIELD =
@@ -344,6 +350,8 @@ export function TaxHorizon({ initialData }: { initialData?: TaxDashboardData }) 
         </div>
       </section>
 
+      <WorkYearSection reportingStartYear={data.profile.reportingStartYear} refreshKey={data.recentEntries.map((entry) => entry.id).join(':') || 'none'} />
+
       <section className="grid gap-6 xl:grid-cols-[minmax(0,1.45fr)_minmax(19rem,0.55fr)]">
         <div className="overflow-hidden rounded-3xl border border-stone-200 bg-white shadow-sm dark:border-fmea-border dark:bg-fmea-bg2">
           <div className="border-b border-stone-100 px-5 pt-5 dark:border-fmea-border sm:px-6">
@@ -366,6 +374,7 @@ export function TaxHorizon({ initialData }: { initialData?: TaxDashboardData }) 
         <aside className="rounded-3xl border border-slate-800 bg-slate-900 p-5 text-white shadow-sm dark:border-fmea-border dark:bg-fmea-nav sm:p-6">
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-cyan-300">Quick actions</p><h2 className="mt-1 text-lg font-semibold">Record a change</h2><p className="mt-2 text-sm leading-6 text-slate-300">The tax reserve follows the bank payment date. A client remittance can be recorded earlier.</p>
           <div className="mt-5 space-y-2">
+            <QuickAction icon={FileUp} label="Upload remittance PDF" detail="Extract figures, dates and hours" onClick={() => setDialog('remittance-upload')} />
             <QuickAction icon={FileCheck2} label="Record client remittance" detail="Gutschrift · payment may follow" onClick={() => setDialog('remittance')} />
             <QuickAction icon={ArrowDownToLine} label="Log cash received" detail="Issued invoice" onClick={() => setDialog('income')} />
             <QuickAction icon={ReceiptText} label="Log expense VAT" detail="Vorsteuer" onClick={() => setDialog('expense')} />
@@ -399,8 +408,10 @@ export function TaxHorizon({ initialData }: { initialData?: TaxDashboardData }) 
                     <p className="mt-0.5 text-xs text-slate-400 dark:text-fmea-dim">
                       {entry.paymentDate
                         ? `${dateLabel(entry.paymentDate)} · VAT ${money(entry.vatCents, currency)}`
-                        : `Remittance ${entry.documentDate ? dateLabel(entry.documentDate) : 'date not recorded'} · VAT not yet reserved`}
+                        : `Remittance ${entry.documentDate ? dateLabel(entry.documentDate) : 'date not recorded'}${entry.expectedPaymentDate ? ` · expected ${dateLabel(entry.expectedPaymentDate)}` : ''} · VAT not yet reserved`}
                       {entry.clientCalculated ? ' · client calculated' : ''}
+                      {entry.aiExtracted ? ' · AI reviewed' : ''}
+                      {entry.workSessionCount ? ` · ${entry.workSessionCount} work dates` : ''}
                     </p>
                   </div>
                   <div className="flex shrink-0 items-center justify-between gap-2 sm:justify-end">
@@ -424,6 +435,7 @@ export function TaxHorizon({ initialData }: { initialData?: TaxDashboardData }) 
       )}
 
       {(dialog === 'income' || dialog === 'remittance' || dialog === 'expense') && <EntryDialog mode={dialog} onClose={() => setDialog(null)} onSaved={async () => { setDialog(null); await load() }} />}
+      {dialog === 'remittance-upload' && <RemittanceUploadDialog onClose={() => setDialog(null)} onSaved={async () => { setDialog(null); await load() }} />}
       {dialog === 'liability' && <LiabilityDialog onClose={() => setDialog(null)} onSaved={async () => { setDialog(null); await load() }} />}
       {dialog === 'settings' && <SettingsDialog profile={data.profile} onClose={() => setDialog(null)} onSaved={async () => { setDialog(null); await load() }} />}
       {dialog === 'payment' && selectedRemittanceId && <PaymentDialog entryId={selectedRemittanceId} onClose={() => { setDialog(null); setSelectedRemittanceId(null) }} onSaved={async () => { setDialog(null); setSelectedRemittanceId(null); await load() }} />}
@@ -469,6 +481,7 @@ function EntryDialog({ mode, onClose, onSaved }: { mode: 'income' | 'remittance'
         body: JSON.stringify({
           type: isInvoice ? 'ISSUED_INVOICE' : isExpense ? 'EXPENSE_VAT' : 'CLIENT_REMITTANCE',
           documentDate: isRemittance ? form.get('documentDate') : undefined,
+          expectedPaymentDate: isRemittance ? form.get('expectedPaymentDate') : undefined,
           paymentDate: form.get('paymentDate'),
           netAmount: net,
           vatAmount: isInvoice ? undefined : vat,
@@ -489,6 +502,7 @@ function EntryDialog({ mode, onClose, onSaved }: { mode: 'income' | 'remittance'
           {isRemittance ? (
             <>
               <label className={LABEL}>Remittance date<input className={FIELD} name="documentDate" type="date" defaultValue={todayInput()} required /></label>
+              <label className={LABEL}>Expected payment <span className="font-normal text-slate-400">(optional)</span><input className={FIELD} name="expectedPaymentDate" type="date" /></label>
               <label className={LABEL}>Payment received <span className="font-normal text-slate-400">(optional)</span><input className={FIELD} name="paymentDate" type="date" /></label>
             </>
           ) : (

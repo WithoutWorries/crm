@@ -62,7 +62,10 @@ export async function middleware(request: NextRequest) {
 
   if (!['GET', 'HEAD', 'OPTIONS'].includes(request.method)) {
     const contentLength = Number.parseInt(request.headers.get('content-length') ?? '0', 10)
-    if (Number.isFinite(contentLength) && contentLength > 1024 * 1024) {
+    const maxBodyBytes = pathname === '/api/tax/remittance-extract'
+      ? 4 * 1024 * 1024 + 128 * 1024
+      : 1024 * 1024
+    if (Number.isFinite(contentLength) && contentLength > maxBodyBytes) {
       return NextResponse.json({ error: 'Request body too large' }, { status: 413 })
     }
   }

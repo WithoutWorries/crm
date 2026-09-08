@@ -62,7 +62,9 @@ A secret embedded in browser JavaScript is not confidential.
 
 ## AI data handling
 
-Quick Capture and the daily digest send selected text to Anthropic. Do not submit
+Quick Capture, the daily digest and deliberate remittance-PDF extraction send selected
+content to Anthropic. Remittance PDFs are sent inline for a single extraction and are not
+stored through Anthropic's Files API. Do not submit
 export-controlled, customer-restricted, personal medical, or otherwise contractually
 restricted information unless the applicable data-processing terms permit it. Future
 analysis features must record when source material leaves the application and must

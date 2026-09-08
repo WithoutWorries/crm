@@ -6,7 +6,7 @@ A private knowledge and reference system alongside an engineering consultancy CR
 
 - **Private Knowledge**: Frictionless long-form capture with optional type selection, recent notes, full-text search, editing, and recoverable deletion
 - **Offline Knowledge Capture**: Device-first drafts and an automatic, duplicate-safe sync queue
-- **Tax Horizon**: Private cash-basis VAT tracking, tax notices, payment alerts, a 12-month horizon, and a safe-to-spend reserve
+- **Tax Horizon**: Private cash-basis VAT tracking, reviewed Claude extraction of remittance PDFs, daily work records, annual work maps, tax notices, payment alerts, and a safe-to-spend reserve
 - **Dashboard**: Overview of open opportunities, pipeline value, overdue tasks, and recent activity
 - **Pipeline Management**: Kanban-style board to track opportunities through 8 stages
 - **Companies**: Manage client companies with industry, regulatory, and contact information
@@ -86,8 +86,11 @@ Customer accounts must not be added to this workspace. Project-level customer is
 is a Stage 7 feature and a prerequisite for external access.
 
 Tax Horizon records are private to their owner, including for administrators. The
-administrator backup includes only the exporting administrator's tax records. The
+administrator backup includes only the exporting administrator's tax and work records. The
 dashboard is a planning aid and does not replace a tax notice or professional advice.
+Uploaded remittance PDFs are sent to Anthropic only after an explicit action, are not stored
+by Reference, and are not uploaded to Anthropic's persistent Files API. Extracted values
+remain proposals until reviewed and confirmed by the signed-in user.
 
 Knowledge drafts and submitted-but-unsynchronised captures are stored in IndexedDB on
 the current device. They are scoped to the last authenticated user and are removed from
@@ -238,6 +241,8 @@ Routes require a signed session unless explicitly documented as a token- or secr
 - `GET /api/tax/dashboard` - Private Tax Horizon metrics, alerts and timeline
 - `GET/POST /api/tax/entries` - Private cash received and expense VAT entries
 - `PATCH/DELETE /api/tax/entries/[id]` - Record a remittance payment or remove an entry and recalculate VAT
+- `POST /api/tax/remittance-extract` - Send one private PDF to Claude for reviewed remittance and daily-hours extraction
+- `GET /api/tax/work-sessions` - Private annual work-session calendar feed
 - `GET/POST /api/tax/liabilities` - Private notices, pre-payments and settlements
 - `PATCH/DELETE /api/tax/liabilities/[id]` - Update payment state or remove a private liability
 - `GET/PATCH /api/tax/settings` - Private Tax Horizon balance and filing settings

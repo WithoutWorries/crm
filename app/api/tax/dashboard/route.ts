@@ -49,6 +49,7 @@ export async function GET() {
       where: { userId: session.userId },
       orderBy: { createdAt: 'desc' },
       take: 20,
+      include: { _count: { select: { workSessions: true } } },
     }),
   ])
 
@@ -158,8 +159,11 @@ export async function GET() {
     grossCents: centsFromDecimal(entry.grossAmount),
     vatRate: entry.vatRate,
     documentDate: entry.documentDate ? toDateOnly(entry.documentDate) : null,
+    expectedPaymentDate: entry.expectedPaymentDate ? toDateOnly(entry.expectedPaymentDate) : null,
     paymentDate: entry.paymentDate ? toDateOnly(entry.paymentDate) : null,
     clientCalculated: entry.clientCalculated,
+    aiExtracted: entry.aiExtracted,
+    workSessionCount: entry._count.workSessions,
   }))
 
   return NextResponse.json(

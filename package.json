@@ -15,6 +15,7 @@
     "db:deploy": "prisma migrate deploy",
     "test:offline-queue": "ts-node --compiler-options '{\"module\":\"CommonJS\"}' scripts/test-offline-queue.ts",
     "test:tax-engine": "ts-node --compiler-options '{\"module\":\"CommonJS\"}' scripts/test-tax-engine.ts",
+    "test:remittance-extraction": "ts-node --compiler-options '{\"module\":\"CommonJS\"}' scripts/test-remittance-extraction.ts",
     "postinstall": "prisma generate"
   },
   "dependencies": {

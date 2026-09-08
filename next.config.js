@@ -40,6 +40,7 @@ const nextConfig = {
               "form-action 'self'",
               "frame-ancestors 'none'",
               "object-src 'none'",
+              "frame-src 'self' blob:",
               "img-src 'self' data: blob:",
               "font-src 'self' data:",
               "style-src 'self' 'unsafe-inline'",

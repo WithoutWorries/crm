@@ -47,6 +47,7 @@ export async function GET() {
       taxProfiles,
       taxCashEntries,
       taxLiabilities,
+      workSessions,
     ] = await Promise.all([
       prisma.company.findMany({ where: { userId: { in: userIds } }, orderBy: { createdAt: 'asc' } }),
       prisma.contact.findMany({ where: { userId: { in: userIds } }, orderBy: { createdAt: 'asc' } }),
@@ -94,15 +95,19 @@ export async function GET() {
         where: { userId: session.userId },
         orderBy: { dueDate: 'asc' },
       }),
+      prisma.workSession.findMany({
+        where: { userId: session.userId },
+        orderBy: { workDate: 'asc' },
+      }),
     ])
 
     const backup = {
       exportedAt: new Date().toISOString(),
-      schemaVersion: '9.1',
+      schemaVersion: '10.0',
       scope: {
         workspace,
         exportedByUserId: session.userId,
-        privateKnowledgePolicy: 'Only the exporting administrator’s private knowledge and tax records are included.',
+        privateKnowledgePolicy: 'Only the exporting administrator’s private knowledge, tax and work records are included.',
       },
       counts: {
         users: users.length,
@@ -126,6 +131,7 @@ export async function GET() {
         taxProfiles: taxProfiles.length,
         taxCashEntries: taxCashEntries.length,
         taxLiabilities: taxLiabilities.length,
+        workSessions: workSessions.length,
       },
       data: {
         users,
@@ -149,6 +155,7 @@ export async function GET() {
         taxProfiles,
         taxCashEntries,
         taxLiabilities,
+        workSessions,
       },
     }
 

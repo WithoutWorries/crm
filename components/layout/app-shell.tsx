@@ -43,7 +43,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <TopBar sidebarCollapsed={sidebarCollapsed} />
       <main
         className={cn(
-          'min-h-screen bg-[#f7f6f2] px-4 pb-12 pt-8 transition-[margin] duration-200 dark:bg-fmea-bg sm:px-6 md:px-8 md:pt-10',
+          'min-h-screen bg-[#f7f6f2] px-4 pb-12 pt-8 transition-[margin] duration-200 print:ml-0 print:min-h-0 print:bg-white print:p-0 dark:bg-fmea-bg sm:px-6 md:px-8 md:pt-10',
           sidebarCollapsed ? 'md:ml-20' : 'md:ml-60'
         )}
       >

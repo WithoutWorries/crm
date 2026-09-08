@@ -263,6 +263,7 @@ model User {
   taxProfile           TaxProfile?
   taxCashEntries       TaxCashEntry[]
   taxLiabilities       TaxLiability[]
+  workSessions         WorkSession[]
   workspace            Workspace             @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
 
   @@index([workspaceId])
@@ -676,25 +677,51 @@ model TaxProfile {
 }
 
 model TaxCashEntry {
-  id               String       @id @default(cuid())
-  userId           String
-  type             TaxEntryType
-  description      String?
-  reference        String?
-  netAmount        Decimal      @db.Decimal(14, 2)
-  vatAmount        Decimal      @db.Decimal(14, 2)
-  grossAmount      Decimal      @db.Decimal(14, 2)
-  vatRate          Int?
-  documentDate     DateTime?
-  paymentDate      DateTime?
-  clientCalculated Boolean      @default(false)
-  createdAt        DateTime     @default(now())
-  updatedAt        DateTime     @updatedAt
+  id                  String       @id @default(cuid())
+  userId              String
+  type                TaxEntryType
+  description         String?
+  reference           String?
+  netAmount           Decimal      @db.Decimal(14, 2)
+  vatAmount           Decimal      @db.Decimal(14, 2)
+  grossAmount         Decimal      @db.Decimal(14, 2)
+  vatRate             Int?
+  documentDate        DateTime?
+  expectedPaymentDate DateTime?
+  paymentDate         DateTime?
+  clientCalculated    Boolean      @default(false)
+  sourceFileName      String?
+  sourceFileHash      String?
+  extractionModel     String?
+  aiExtracted         Boolean      @default(false)
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workSessions WorkSession[]
 
+  @@unique([userId, sourceFileHash])
   @@index([userId, paymentDate])
   @@index([userId, type])
+}
+
+model WorkSession {
+  id             String   @id @default(cuid())
+  userId         String
+  taxCashEntryId String?
+  workDate       DateTime
+  hours          Decimal  @db.Decimal(6, 2)
+  activity       String?
+  projectLabel   String?
+  sourcePage     Int?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  taxCashEntry TaxCashEntry? @relation(fields: [taxCashEntryId], references: [id], onDelete: Cascade)
+
+  @@index([userId, workDate])
+  @@index([taxCashEntryId])
 }
 
 model TaxLiability {

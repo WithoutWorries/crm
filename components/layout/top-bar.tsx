@@ -42,7 +42,7 @@ export function TopBar({ sidebarCollapsed }: TopBarProps) {
   return (
     <div
       className={cn(
-        'sticky top-0 z-40 border-b border-stone-200 bg-white/95 backdrop-blur transition-[margin] duration-200 dark:border-fmea-border dark:bg-fmea-nav/95',
+        'sticky top-0 z-40 border-b border-stone-200 bg-white/95 backdrop-blur transition-[margin] duration-200 print:hidden dark:border-fmea-border dark:bg-fmea-nav/95',
         sidebarCollapsed ? 'md:ml-20' : 'md:ml-60'
       )}
     >
