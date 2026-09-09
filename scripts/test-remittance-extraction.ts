@@ -24,6 +24,7 @@ const extraction = normalizeRemittanceExtraction({
 assert.equal(extraction.netAmount, '8100.00')
 assert.equal(extraction.vatAmount, '1539.00')
 assert.equal(extraction.grossAmount, '9639.00')
+assert.equal(extraction.documentNumber, '1661198519')
 assert.equal(extraction.currency, 'EUR')
 assert.equal(extraction.workSessions.length, 18)
 assert.equal(extraction.workSessions[0].projectLabel, 'February engagement')
@@ -33,7 +34,8 @@ const mismatch = normalizeRemittanceExtraction({
   billedHours: 10,
   workSessions: [{ workDate: '2026-02-02', hours: 5 }],
 })
-assert.match(mismatch.warnings[0], /Daily hours total/)
+assert.match(mismatch.warnings.join(' '), /Daily hours total/)
+assert.match(mismatch.warnings.join(' '), /document or invoice number/i)
 
 assert.deepEqual(extractJsonObject('```json\n{"documentNumber":"A1"}\n```'), { documentNumber: 'A1' })
 assert.equal(normalizeRemittanceExtraction({ documentDate: '2026-02-29' }).documentDate, null)

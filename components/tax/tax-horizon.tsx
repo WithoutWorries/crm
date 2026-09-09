@@ -100,7 +100,7 @@ export interface TaxDashboardData {
   calculationNote: string
 }
 
-type Dialog = 'income' | 'remittance' | 'remittance-upload' | 'expense' | 'liability' | 'settings' | 'payment' | null
+type Dialog = 'income' | 'remittance' | 'remittance-upload' | 'expense' | 'liability' | 'settings' | 'payment' | 'reference' | null
 type LiabilityTab = 'current' | 'upcoming' | 'prior'
 
 const FIELD =
@@ -380,15 +380,18 @@ export function TaxHorizon({ initialData }: { initialData?: TaxDashboardData }) 
           <div className="mt-4 grid gap-2 lg:grid-cols-2">
             {data.recentEntries.slice(0, 6).map((entry) => {
               const paymentPending = entry.type === 'CLIENT_REMITTANCE' && !entry.paymentDate
+              const fallbackLabel = entry.description || (entry.type === 'EXPENSE_VAT' ? 'Business expense' : entry.type === 'CLIENT_REMITTANCE' ? 'Client remittance' : 'Issued invoice')
               return (
                 <div key={entry.id} className="flex flex-col gap-3 rounded-2xl border border-stone-100 bg-stone-50/70 px-4 py-3 dark:border-fmea-border dark:bg-fmea-bg3/50 sm:flex-row sm:items-center sm:justify-between">
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
                       <p className="truncate text-sm font-semibold text-slate-800 dark:text-fmea-text">
-                        {entry.description || (entry.type === 'EXPENSE_VAT' ? 'Business expense' : entry.type === 'CLIENT_REMITTANCE' ? 'Client remittance' : 'Issued invoice')}
+                        {entry.reference ? `Document ${entry.reference}` : fallbackLabel}
                       </p>
                       {paymentPending && <span className="shrink-0 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[9px] font-semibold text-amber-700 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-300">Payment pending</span>}
                     </div>
+                    {entry.type === 'CLIENT_REMITTANCE' && <button type="button" onClick={() => { setSelectedRemittanceId(entry.id); setDialog('reference') }} className={cn('mt-1 text-[10px] font-semibold hover:underline', entry.reference ? 'text-slate-400 dark:text-fmea-dim' : 'rounded-md bg-amber-100 px-2 py-1 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300')}>{entry.reference ? 'Correct document number' : 'Add document number'}</button>}
+                    {entry.reference && entry.description && <p className="mt-1 truncate text-xs font-medium text-slate-600 dark:text-fmea-text">{entry.description}</p>}
                     <p className="mt-0.5 text-xs text-slate-400 dark:text-fmea-dim">
                       {entry.paymentDate
                         ? `${dateLabel(entry.paymentDate)} · VAT ${money(entry.vatCents, currency)}`
@@ -423,6 +426,7 @@ export function TaxHorizon({ initialData }: { initialData?: TaxDashboardData }) 
       {dialog === 'liability' && <LiabilityDialog onClose={() => setDialog(null)} onSaved={async () => { setDialog(null); await load() }} />}
       {dialog === 'settings' && <SettingsDialog profile={data.profile} onClose={() => setDialog(null)} onSaved={async () => { setDialog(null); await load() }} />}
       {dialog === 'payment' && selectedRemittanceId && <PaymentDialog entryId={selectedRemittanceId} onClose={() => { setDialog(null); setSelectedRemittanceId(null) }} onSaved={async () => { setDialog(null); setSelectedRemittanceId(null); await load() }} />}
+      {dialog === 'reference' && selectedRemittanceId && <ReferenceDialog entryId={selectedRemittanceId} initialReference={data.recentEntries.find((entry) => entry.id === selectedRemittanceId)?.reference ?? ''} onClose={() => { setDialog(null); setSelectedRemittanceId(null) }} onSaved={async () => { setDialog(null); setSelectedRemittanceId(null); await load() }} />}
     </div>
   )
 }
@@ -492,7 +496,7 @@ function EntryDialog({ mode, onClose, onSaved }: { mode: 'income' | 'remittance'
           ) : (
             <label className={LABEL}>Payment date<input className={FIELD} name="paymentDate" type="date" defaultValue={todayInput()} required /></label>
           )}
-          <label className={LABEL}>Reference <span className="font-normal text-slate-400">(optional)</span><input className={FIELD} name="reference" maxLength={120} placeholder="Invoice or client reference" /></label>
+          <label className={LABEL}>{isRemittance ? 'Document / invoice number' : <>Reference <span className="font-normal text-slate-400">(optional)</span></>}<input className={FIELD} name="reference" maxLength={120} placeholder={isRemittance ? 'Enter exactly as printed' : 'Invoice or client reference'} required={isRemittance} /></label>
         </div>
         {isRemittance && <p className="-mt-2 text-xs leading-5 text-slate-500 dark:text-fmea-dim">Leave payment received blank until the money reaches the bank. No VAT will be reserved before then.</p>}
         <label className={LABEL}>Description <span className="font-normal text-slate-400">(optional)</span><input className={FIELD} name="description" maxLength={500} placeholder={isExpense ? 'Software, travel, equipment…' : 'Client or work package'} /></label>
@@ -542,6 +546,28 @@ function PaymentDialog({ entryId, onClose, onSaved }: { entryId: string; onClose
       </form>
     </Modal>
   )
+}
+
+function ReferenceDialog({ entryId, initialReference, onClose, onSaved }: { entryId: string; initialReference: string; onClose: () => void; onSaved: () => Promise<void> }) {
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+  const submit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault(); setSaving(true); setError('')
+    const form = new FormData(event.currentTarget)
+    try {
+      await jsonRequest(`/api/tax/entries/${entryId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'updateReference', reference: form.get('reference') }),
+      })
+      await onSaved()
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : 'Unable to save the document number')
+    } finally {
+      setSaving(false)
+    }
+  }
+  return <Modal title="Document / invoice number" description="Enter the primary number exactly as printed on the remittance notice." onClose={onClose}><form onSubmit={submit} className="space-y-5"><label className={LABEL}>Document / invoice number<input className={FIELD} name="reference" defaultValue={initialReference} maxLength={120} placeholder="Enter exactly as printed" autoFocus required /></label>{error && <p className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</p>}<div className="flex justify-end"><SubmitButton saving={saving}>Save document number</SubmitButton></div></form></Modal>
 }
 
 function LiabilityDialog({ onClose, onSaved }: { onClose: () => void; onSaved: () => Promise<void> }) {

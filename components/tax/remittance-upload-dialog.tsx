@@ -210,7 +210,7 @@ export function RemittanceUploadDialog({ onClose, onSaved }: {
               <section>
                 <div className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-cyan-700 dark:text-fmea-accent" /><h3 className="text-sm font-semibold text-slate-900 dark:text-fmea-hi">Remittance</h3></div>
                 <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                  <label className={LABEL}>Document number<input className={FIELD} name="reference" defaultValue={extraction.documentNumber ?? ''} maxLength={120} /></label>
+                  <label className={LABEL}>Document / invoice number<input className={FIELD} name="reference" defaultValue={extraction.documentNumber ?? ''} maxLength={120} placeholder="Enter exactly as printed" required /></label>
                   <label className={LABEL}>Document date<input className={FIELD} name="documentDate" type="date" defaultValue={extraction.documentDate ?? ''} required /></label>
                   <label className={LABEL}>Expected payment <span className="font-normal text-slate-400">(not received)</span><input className={FIELD} name="expectedPaymentDate" type="date" defaultValue={extraction.expectedPaymentDate ?? ''} /></label>
                   <label className={LABEL}>Actual bank payment <span className="font-normal text-slate-400">(optional)</span><input className={FIELD} name="paymentDate" type="date" defaultValue={extraction.actualPaymentDate ?? ''} /></label>

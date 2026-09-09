@@ -42,7 +42,10 @@ Return ONLY one valid JSON object with exactly this shape:
 }
 
 Rules:
-- Use the document/self-billing number as documentNumber.
+- documentNumber is the primary accounting identifier printed on the remittance or self-billing notice. Copy it exactly, including letters, separators and leading zeroes.
+- Look for labels such as Document Number, Invoice Number, Self-bill Invoice Number, Gutschriftnummer, Rechnungsnummer, Belegnummer or Abrechnungsnummer.
+- Do not substitute a customer number, supplier number, assignment number, purchase order, contract number, tax number or payment reference for documentNumber.
+- If no primary document or invoice number can be identified, return null and add a warning stating that it must be entered manually.
 - expectedPaymentDate is a due, prospective, forecast, or payment-terms date.
 - actualPaymentDate must stay null unless the document explicitly proves that money was transferred or received on that date. A due date is never an actual payment date.
 - Preserve the document's stated net, VAT, gross, VAT rate and three-letter currency.
@@ -127,7 +130,7 @@ export async function POST(request: NextRequest) {
             },
             {
               type: 'text',
-              text: 'Extract the remittance, payment forecast, financial totals and every explicit daily work record. Return the specified JSON only.',
+              text: 'Extract the exact document or invoice number first, then the remittance, payment forecast, financial totals and every explicit daily work record. Return the specified JSON only.',
             },
           ],
         }],

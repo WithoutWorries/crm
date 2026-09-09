@@ -108,8 +108,12 @@ export function normalizeRemittanceExtraction(value: unknown): RemittanceExtract
   }
 
   const currency = textOrNull(source.currency, 3)?.toUpperCase() || 'EUR'
+  const documentNumber = textOrNull(source.documentNumber, 120)
+  if (!documentNumber) {
+    warnings.push('No document or invoice number was identified. Enter it from the remittance before saving.')
+  }
   return {
-    documentNumber: textOrNull(source.documentNumber, 120),
+    documentNumber,
     documentDate: dateOrNull(source.documentDate),
     expectedPaymentDate: dateOrNull(source.expectedPaymentDate),
     actualPaymentDate: dateOrNull(source.actualPaymentDate),

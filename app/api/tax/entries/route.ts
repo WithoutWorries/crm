@@ -39,12 +39,16 @@ export async function POST(request: NextRequest) {
   const paymentDate = body.paymentDate ? parseDateOnly(body.paymentDate) : null
   const documentDate = body.documentDate ? parseDateOnly(body.documentDate) : null
   const expectedPaymentDate = body.expectedPaymentDate ? parseDateOnly(body.expectedPaymentDate) : null
+  const reference = optionalString(body.reference, 120)
   const netCents = parseMoneyToCents(body.netAmount)
   if (netCents === null) {
     return NextResponse.json({ error: 'Enter a valid net amount' }, { status: 400 })
   }
   if (body.type === 'CLIENT_REMITTANCE' && !documentDate) {
     return NextResponse.json({ error: 'Enter the remittance date' }, { status: 400 })
+  }
+  if (body.type === 'CLIENT_REMITTANCE' && !reference) {
+    return NextResponse.json({ error: 'Enter the document or invoice number from the remittance' }, { status: 400 })
   }
   if (body.paymentDate && !paymentDate) {
     return NextResponse.json({ error: 'Enter a valid payment date' }, { status: 400 })
@@ -155,7 +159,7 @@ export async function POST(request: NextRequest) {
         userId: session.userId,
         type: body.type,
         description: optionalString(body.description, 500),
-        reference: optionalString(body.reference, 120),
+        reference,
         netAmount: decimalFromCents(netCents),
         vatAmount: decimalFromCents(vatCents),
         grossAmount: decimalFromCents(grossCents),
