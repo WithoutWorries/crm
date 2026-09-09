@@ -156,6 +156,13 @@ export const ROADMAP_STAGES: RoadmapStage[] = [
 export const PROGRESS_ENTRIES: ProgressEntry[] = [
   {
     date: '9 September 2026',
+    title: 'Complete remittance record archive added',
+    detail:
+      'All client remittances can now be searched by document number, project or description and corrected through a dedicated record view. Edits recalculate VAT and update the annual work calendar.',
+    stage: null,
+  },
+  {
+    date: '9 September 2026',
     title: 'Tax payment horizon made visual',
     detail:
       'The 12-month tax outlook now separates MwSt, quarterly income-tax pre-payments and prior-year catch-up payments in a large colour-coded graph, with projections and month-level payment details.',

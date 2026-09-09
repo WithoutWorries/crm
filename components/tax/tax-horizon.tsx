@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { FormEvent, ReactNode, useEffect, useMemo, useState } from 'react'
 import {
   AlertTriangle,
@@ -375,7 +376,9 @@ export function TaxHorizon({ initialData }: { initialData?: TaxDashboardData }) 
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-cyan-700 dark:text-fmea-accent">Audit trail</p>
               <h2 className="mt-1 text-lg font-semibold text-slate-950 dark:text-fmea-hi">Recent records</h2>
             </div>
-            <Banknote className="h-5 w-5 text-stone-300 dark:text-fmea-border" />
+            <Link href="/tax/remittances" className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-cyan-200 bg-cyan-50 px-3.5 py-2 text-xs font-semibold text-cyan-900 transition hover:bg-cyan-100 dark:border-cyan-900/70 dark:bg-cyan-950/30 dark:text-cyan-200">
+              <Banknote className="h-4 w-4" />All remittances<ChevronRight className="h-3.5 w-3.5" />
+            </Link>
           </div>
           <div className="mt-4 grid gap-2 lg:grid-cols-2">
             {data.recentEntries.slice(0, 6).map((entry) => {

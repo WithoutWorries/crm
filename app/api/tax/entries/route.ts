@@ -3,6 +3,7 @@ import { logAudit } from '@/lib/audit'
 import { prisma } from '@/lib/prisma'
 import { optionalString, readJsonObject } from '@/lib/request'
 import { requireActiveSession } from '@/lib/session'
+import { parseWorkSessions } from '@/lib/tax-remittance'
 import {
   calculateInvoiceAmounts,
   decimalFromCents,
@@ -93,48 +94,15 @@ export async function POST(request: NextRequest) {
   }
 
   const projectLabel = optionalString(body.projectLabel, 160)
-  const suppliedSessions = body.type === 'CLIENT_REMITTANCE' && Array.isArray(body.workSessions)
-    ? body.workSessions.slice(0, 600)
-    : []
-  const workSessions = [] as Array<{
-    userId: string
-    workDate: Date
-    hours: string
-    activity: string | null
-    projectLabel: string | null
-    sourcePage: number | null
-  }>
-  for (const item of suppliedSessions) {
-    if (!item || typeof item !== 'object' || Array.isArray(item)) {
-      return NextResponse.json({ error: 'A work-session row is invalid' }, { status: 400 })
-    }
-    const workDate = parseDateOnly(item.workDate)
-    const normalizedHours = typeof item.hours === 'string'
-      ? item.hours.trim().replace(',', '.')
-      : String(item.hours ?? '')
-    const hours = Number(normalizedHours)
-    if (!workDate || !Number.isFinite(hours) || hours <= 0 || hours > 24) {
-      return NextResponse.json({ error: 'Each work session needs a valid date and 0–24 hours' }, { status: 400 })
-    }
-    const sourcePage = Number(item.sourcePage)
-    workSessions.push({
-      userId: session.userId,
-      workDate,
-      hours: hours.toFixed(2),
-      activity: optionalString(item.activity, 240),
-      projectLabel: optionalString(item.projectLabel, 160) ?? projectLabel,
-      sourcePage: Number.isInteger(sourcePage) && sourcePage >= 1 && sourcePage <= 600 ? sourcePage : null,
-    })
+  const parsedSessions = parseWorkSessions(
+    body.type === 'CLIENT_REMITTANCE' ? body.workSessions : [],
+    session.userId,
+    projectLabel
+  )
+  if (!parsedSessions.ok) {
+    return NextResponse.json({ error: parsedSessions.error }, { status: 400 })
   }
-  const hoursByDate = new Map<string, number>()
-  for (const workSession of workSessions) {
-    const key = workSession.workDate.toISOString().slice(0, 10)
-    const total = (hoursByDate.get(key) ?? 0) + Number(workSession.hours)
-    if (total > 24) {
-      return NextResponse.json({ error: `Work sessions exceed 24 hours on ${key}` }, { status: 400 })
-    }
-    hoursByDate.set(key, total)
-  }
+  const workSessions = parsedSessions.workSessions
 
   const sourceFileHash = typeof body.sourceFileHash === 'string' && /^[a-f0-9]{64}$/i.test(body.sourceFileHash)
     ? body.sourceFileHash.toLowerCase()
