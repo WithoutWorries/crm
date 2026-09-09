@@ -135,10 +135,10 @@ export function TaxHorizonChart({ timeline, currency }: { timeline: TimelineMont
           <p className="mt-1 text-sm text-slate-500 dark:text-fmea-dim">Select a month to see every payment behind the graph.</p>
         </div>
         <div className="flex flex-wrap gap-x-4 gap-y-2 text-xs font-semibold text-slate-600 dark:text-fmea-text" aria-label="Tax payment categories">
-          <Legend colour="bg-cyan-500" label="MwSt" />
-          <Legend colour="bg-violet-500" label="ESt pre-payment" />
-          <Legend colour="bg-rose-500" label="Prior-year catch-up" />
-          <Legend colour="bg-slate-400" label="Other" />
+          <Legend colour="bg-cyan-500 shadow-sm shadow-cyan-500/40" label="MwSt" />
+          <Legend colour="bg-violet-600 shadow-sm shadow-violet-500/40" label="ESt pre-payment" />
+          <Legend colour="bg-rose-600 shadow-sm shadow-rose-500/40" label="Prior-year catch-up" />
+          <Legend colour="bg-slate-500" label="Other" />
         </div>
       </div>
 
@@ -151,7 +151,7 @@ export function TaxHorizonChart({ timeline, currency }: { timeline: TimelineMont
       <div className="overflow-x-auto px-4 pb-2 pt-6 sm:px-6">
         <div className="min-w-[1040px]">
           <div className="grid grid-cols-[4.5rem_minmax(0,1fr)] gap-3">
-            <div className="relative h-72 text-right text-[10px] font-medium tabular-nums text-slate-400 dark:text-fmea-dim" aria-hidden="true">
+            <div className="relative h-72 text-right text-[10px] font-medium tabular-nums text-slate-400 dark:text-slate-300" aria-hidden="true">
               {[1, 0.75, 0.5, 0.25, 0].map((ratio) => (
                 <span key={ratio} className="absolute right-0 -translate-y-1/2" style={{ top: `${(1 - ratio) * 100}%` }}>
                   {money(maximum * ratio, currency, true)}
@@ -159,9 +159,9 @@ export function TaxHorizonChart({ timeline, currency }: { timeline: TimelineMont
               ))}
             </div>
 
-            <div className="relative h-72 border-b border-slate-300 dark:border-fmea-border">
+            <div className="relative h-72 border-b border-slate-300 dark:border-slate-500">
               {[0, 0.25, 0.5, 0.75, 1].map((ratio) => (
-                <div key={ratio} className="pointer-events-none absolute inset-x-0 border-t border-dashed border-stone-200 dark:border-fmea-border/70" style={{ top: `${ratio * 100}%` }} />
+                <div key={ratio} className="pointer-events-none absolute inset-x-0 border-t border-dashed border-stone-200 dark:border-slate-600/80" style={{ top: `${ratio * 100}%` }} />
               ))}
               <div className="absolute inset-0 grid grid-cols-12 gap-2">
                 {timeline.map((month, index) => {
@@ -175,8 +175,8 @@ export function TaxHorizonChart({ timeline, currency }: { timeline: TimelineMont
                       onClick={() => setSelectedKey(month.key)}
                       className={cn(
                         'group relative flex h-full items-end justify-center rounded-t-xl px-1 outline-none transition focus-visible:ring-2 focus-visible:ring-cyan-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-fmea-bg2',
-                        selectedMonth && 'bg-cyan-50/80 dark:bg-cyan-950/20',
-                        month.isPast && !selectedMonth && 'opacity-55'
+                        selectedMonth && 'bg-cyan-50/90 dark:bg-cyan-900/30',
+                        month.isPast && !selectedMonth && 'opacity-75'
                       )}
                       aria-label={`${month.label}: ${money(monthAmounts.total, currency)}`}
                       aria-pressed={selectedMonth}
@@ -184,12 +184,12 @@ export function TaxHorizonChart({ timeline, currency }: { timeline: TimelineMont
                       {month.isCurrent && <span className="absolute inset-x-1 top-2 rounded-full bg-cyan-800 px-1 py-1 text-[9px] font-bold uppercase tracking-wider text-white dark:bg-fmea-accent dark:text-fmea-bg">Now</span>}
                       {urgent && <span className="absolute right-1 top-2 h-2.5 w-2.5 rounded-full bg-rose-500 ring-4 ring-rose-100 dark:ring-rose-950" title="Urgent or overdue payment" />}
                       {monthAmounts.total > 0 && (
-                        <div className="relative flex w-full max-w-14 flex-col-reverse overflow-hidden rounded-t-lg shadow-sm transition group-hover:brightness-95" style={{ height: segmentHeight(monthAmounts.total, maximum) }}>
-                          {monthAmounts.vat > 0 && <BarSegment value={monthAmounts.vat} total={monthAmounts.total} className="bg-cyan-500 dark:bg-cyan-400" label={`MwSt ${money(monthAmounts.vat, currency)}`} />}
-                          {monthAmounts.projectedVat > 0 && <BarSegment value={monthAmounts.projectedVat} total={monthAmounts.total} className="border border-dashed border-cyan-600 bg-cyan-100 dark:border-cyan-300 dark:bg-cyan-900" label={`Projected MwSt ${money(monthAmounts.projectedVat, currency)}`} />}
-                          {monthAmounts.prepayment > 0 && <BarSegment value={monthAmounts.prepayment} total={monthAmounts.total} className="bg-violet-500 dark:bg-violet-400" label={`Income-tax pre-payment ${money(monthAmounts.prepayment, currency)}`} />}
-                          {monthAmounts.priorYear > 0 && <BarSegment value={monthAmounts.priorYear} total={monthAmounts.total} className="bg-rose-500 dark:bg-rose-400" label={`Prior-year catch-up ${money(monthAmounts.priorYear, currency)}`} />}
-                          {monthAmounts.other > 0 && <BarSegment value={monthAmounts.other} total={monthAmounts.total} className="bg-slate-400 dark:bg-slate-500" label={`Other tax ${money(monthAmounts.other, currency)}`} />}
+                        <div className="relative flex w-full max-w-14 flex-col-reverse overflow-hidden rounded-t-lg shadow-lg ring-1 ring-black/10 transition group-hover:brightness-110 dark:ring-white/20" style={{ height: segmentHeight(monthAmounts.total, maximum) }}>
+                          {monthAmounts.vat > 0 && <BarSegment value={monthAmounts.vat} total={monthAmounts.total} className="bg-cyan-500 dark:bg-cyan-500" label={`MwSt ${money(monthAmounts.vat, currency)}`} />}
+                          {monthAmounts.projectedVat > 0 && <BarSegment value={monthAmounts.projectedVat} total={monthAmounts.total} className="border-2 border-dashed border-cyan-700 bg-cyan-200 dark:border-cyan-200 dark:bg-cyan-700" label={`Projected MwSt ${money(monthAmounts.projectedVat, currency)}`} />}
+                          {monthAmounts.prepayment > 0 && <BarSegment value={monthAmounts.prepayment} total={monthAmounts.total} className="bg-violet-600 dark:bg-violet-500" label={`Income-tax pre-payment ${money(monthAmounts.prepayment, currency)}`} />}
+                          {monthAmounts.priorYear > 0 && <BarSegment value={monthAmounts.priorYear} total={monthAmounts.total} className="bg-rose-600 dark:bg-rose-500" label={`Prior-year catch-up ${money(monthAmounts.priorYear, currency)}`} />}
+                          {monthAmounts.other > 0 && <BarSegment value={monthAmounts.other} total={monthAmounts.total} className="bg-slate-500 dark:bg-slate-300" label={`Other tax ${money(monthAmounts.other, currency)}`} />}
                         </div>
                       )}
                     </button>
@@ -201,7 +201,7 @@ export function TaxHorizonChart({ timeline, currency }: { timeline: TimelineMont
 
           <div className="ml-[5.25rem] mt-2 grid grid-cols-12 gap-2">
             {timeline.map((month, index) => (
-              <button key={month.key} type="button" onClick={() => setSelectedKey(month.key)} className={cn('min-w-0 rounded-lg px-1 py-1.5 text-center transition hover:bg-stone-100 dark:hover:bg-fmea-bg3', month.key === selectedKey ? 'bg-cyan-50 text-cyan-800 dark:bg-cyan-950/20 dark:text-fmea-accent' : 'text-slate-500 dark:text-fmea-dim')}>
+              <button key={month.key} type="button" onClick={() => setSelectedKey(month.key)} className={cn('min-w-0 rounded-lg px-1 py-1.5 text-center transition hover:bg-stone-100 dark:hover:bg-fmea-bg3', month.key === selectedKey ? 'bg-cyan-100 text-cyan-900 dark:bg-cyan-800 dark:text-white' : 'text-slate-500 dark:text-slate-300')}>
                 <span className="block text-[11px] font-semibold">{month.label}</span>
                 {amounts[index].total > 0 && <span className="mt-0.5 block text-[9px] tabular-nums">{money(amounts[index].total, currency, true)}</span>}
               </button>
@@ -261,9 +261,9 @@ function Legend({ colour, label }: { colour: string; label: string }) {
 
 function TotalBand({ colour, label, value, detail }: { colour: 'cyan' | 'violet' | 'rose'; label: string; value: string; detail: string }) {
   const styles = {
-    cyan: 'border-cyan-200 bg-cyan-50 text-cyan-950 dark:border-cyan-900/70 dark:bg-cyan-950/25 dark:text-cyan-100',
-    violet: 'border-violet-200 bg-violet-50 text-violet-950 dark:border-violet-900/70 dark:bg-violet-950/25 dark:text-violet-100',
-    rose: 'border-rose-200 bg-rose-50 text-rose-950 dark:border-rose-900/70 dark:bg-rose-950/25 dark:text-rose-100',
+    cyan: 'border-cyan-600 bg-cyan-600 text-white shadow-md shadow-cyan-900/10 dark:border-cyan-400 dark:bg-cyan-500 dark:text-slate-950',
+    violet: 'border-violet-600 bg-violet-600 text-white shadow-md shadow-violet-900/10 dark:border-violet-400 dark:bg-violet-500 dark:text-white',
+    rose: 'border-rose-600 bg-rose-600 text-white shadow-md shadow-rose-900/10 dark:border-rose-400 dark:bg-rose-500 dark:text-white',
   }[colour]
   return <div className={cn('rounded-2xl border px-4 py-3.5', styles)}><p className="text-[10px] font-bold uppercase tracking-[0.13em] opacity-65">{label}</p><p className="mt-1 text-2xl font-semibold tracking-tight tabular-nums">{value}</p><p className="mt-0.5 text-[10px] opacity-60">{detail}</p></div>
 }
