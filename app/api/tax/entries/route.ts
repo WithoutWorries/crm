@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { optionalString, readJsonObject } from '@/lib/request'
 import { requireActiveSession } from '@/lib/session'
 import { parseWorkSessions } from '@/lib/tax-remittance'
+import { parseCashDiscountDays, parseCashDiscountRate } from '@/lib/remittance-reconciliation'
 import {
   calculateInvoiceAmounts,
   decimalFromCents,
@@ -42,6 +43,9 @@ export async function POST(request: NextRequest) {
   const expectedPaymentDate = body.expectedPaymentDate ? parseDateOnly(body.expectedPaymentDate) : null
   const reference = optionalString(body.reference, 120)
   const netCents = parseMoneyToCents(body.netAmount)
+  const bankedGrossCents = parseMoneyToCents(body.bankedGrossAmount)
+  const cashDiscountRate = parseCashDiscountRate(body.cashDiscountRate)
+  const cashDiscountDays = parseCashDiscountDays(body.cashDiscountDays)
   if (netCents === null) {
     return NextResponse.json({ error: 'Enter a valid net amount' }, { status: 400 })
   }
@@ -59,6 +63,15 @@ export async function POST(request: NextRequest) {
   }
   if (body.type !== 'CLIENT_REMITTANCE' && !paymentDate) {
     return NextResponse.json({ error: 'Enter the date the payment reached the bank' }, { status: 400 })
+  }
+  if (body.type === 'CLIENT_REMITTANCE' && paymentDate && (bankedGrossCents === null || bankedGrossCents <= 0)) {
+    return NextResponse.json({ error: 'Enter the amount that actually reached the bank' }, { status: 400 })
+  }
+  if (body.type === 'CLIENT_REMITTANCE' && body.cashDiscountRate && cashDiscountRate === null) {
+    return NextResponse.json({ error: 'Cash discount must be a valid percentage' }, { status: 400 })
+  }
+  if (body.type === 'CLIENT_REMITTANCE' && body.cashDiscountDays && cashDiscountDays === null) {
+    return NextResponse.json({ error: 'Cash discount days must be between 1 and 365' }, { status: 400 })
   }
 
   let vatCents: number
@@ -135,6 +148,16 @@ export async function POST(request: NextRequest) {
         documentDate,
         expectedPaymentDate,
         paymentDate,
+        bankedGrossAmount: body.type === 'CLIENT_REMITTANCE' && bankedGrossCents !== null
+          ? decimalFromCents(bankedGrossCents)
+          : null,
+        cashDiscountRate: body.type === 'CLIENT_REMITTANCE' && cashDiscountRate !== null
+          ? cashDiscountRate.toFixed(2)
+          : null,
+        cashDiscountDays: body.type === 'CLIENT_REMITTANCE' ? cashDiscountDays : null,
+        reconciliationNote: body.type === 'CLIENT_REMITTANCE'
+          ? optionalString(body.reconciliationNote, 1000)
+          : null,
         clientCalculated: body.type === 'CLIENT_REMITTANCE',
         sourceFileName: aiExtracted ? sourceFileName : null,
         sourceFileHash: aiExtracted ? sourceFileHash : null,

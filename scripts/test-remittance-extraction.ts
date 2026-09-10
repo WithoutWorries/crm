@@ -10,6 +10,8 @@ const extraction = normalizeRemittanceExtraction({
   vatAmount: '1.539,00',
   grossAmount: '9.639,00',
   vatRate: 19,
+  cashDiscountRate: '1,5',
+  cashDiscountDays: 14,
   currency: 'eur',
   billedHours: 90,
   projectLabel: 'February engagement',
@@ -25,6 +27,8 @@ assert.equal(extraction.netAmount, '8100.00')
 assert.equal(extraction.vatAmount, '1539.00')
 assert.equal(extraction.grossAmount, '9639.00')
 assert.equal(extraction.documentNumber, '1661198519')
+assert.equal(extraction.cashDiscountRate, 1.5)
+assert.equal(extraction.cashDiscountDays, 14)
 assert.equal(extraction.currency, 'EUR')
 assert.equal(extraction.workSessions.length, 18)
 assert.equal(extraction.workSessions[0].projectLabel, 'February engagement')

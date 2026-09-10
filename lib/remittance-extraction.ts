@@ -20,6 +20,8 @@ export interface RemittanceExtraction {
   vatAmount: string | null
   grossAmount: string | null
   vatRate: number | null
+  cashDiscountRate: number | null
+  cashDiscountDays: number | null
   currency: string
   billedHours: string | null
   workSessions: ExtractedWorkSession[]
@@ -53,6 +55,17 @@ function decimalOrNull(value: unknown, maximum: number): string | null {
 function pageOrNull(value: unknown): number | null {
   const page = Number(value)
   return Number.isInteger(page) && page >= 1 && page <= 600 ? page : null
+}
+
+function discountRateOrNull(value: unknown): number | null {
+  const normalized = typeof value === 'string' ? value.trim().replace(',', '.') : value
+  const rate = Number(normalized)
+  return Number.isFinite(rate) && rate > 0 && rate <= 100 ? Math.round(rate * 100) / 100 : null
+}
+
+function discountDaysOrNull(value: unknown): number | null {
+  const days = Number(value)
+  return Number.isInteger(days) && days >= 1 && days <= 365 ? days : null
 }
 
 export function normalizeRemittanceExtraction(value: unknown): RemittanceExtraction {
@@ -124,6 +137,8 @@ export function normalizeRemittanceExtraction(value: unknown): RemittanceExtract
     vatAmount,
     grossAmount,
     vatRate,
+    cashDiscountRate: discountRateOrNull(source.cashDiscountRate),
+    cashDiscountDays: discountDaysOrNull(source.cashDiscountDays),
     currency: /^[A-Z]{3}$/.test(currency) ? currency : 'EUR',
     billedHours,
     workSessions,

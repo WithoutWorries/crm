@@ -155,6 +155,13 @@ export const ROADMAP_STAGES: RoadmapStage[] = [
 
 export const PROGRESS_ENTRIES: ProgressEntry[] = [
   {
+    date: '10 September 2026',
+    title: 'Bank receipt reconciliation and accountant export added',
+    detail:
+      'Remittances now preserve the client-stated figures separately from the bank receipt, recognise matching cash discounts, hold unexplained differences for review, calculate VAT from the reconciled receipt and export a year-based income and VAT CSV.',
+    stage: null,
+  },
+  {
     date: '9 September 2026',
     title: 'Complete remittance record archive added',
     detail:

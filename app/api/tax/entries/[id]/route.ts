@@ -5,6 +5,7 @@ import { optionalString, readJsonObject } from '@/lib/request'
 import { requireActiveSession } from '@/lib/session'
 import { decimalFromCents, parseDateOnly, parseMoneyToCents, rebuildCalculatedVat } from '@/lib/tax'
 import { parseWorkSessions } from '@/lib/tax-remittance'
+import { parseCashDiscountDays, parseCashDiscountRate } from '@/lib/remittance-reconciliation'
 
 export async function PATCH(
   request: NextRequest,
@@ -33,6 +34,9 @@ export async function PATCH(
     const netCents = parseMoneyToCents(body.netAmount)
     const vatCents = parseMoneyToCents(body.vatAmount)
     const grossCents = parseMoneyToCents(body.grossAmount)
+    const bankedGrossCents = parseMoneyToCents(body.bankedGrossAmount)
+    const cashDiscountRate = parseCashDiscountRate(body.cashDiscountRate)
+    const cashDiscountDays = parseCashDiscountDays(body.cashDiscountDays)
 
     if (!reference) {
       return NextResponse.json({ error: 'Enter the document or invoice number from the remittance' }, { status: 400 })
@@ -52,6 +56,18 @@ export async function PATCH(
     if (Math.abs(netCents + vatCents - grossCents) > 1) {
       return NextResponse.json({ error: 'Net plus VAT must agree with the gross amount' }, { status: 400 })
     }
+    if (paymentDate && (bankedGrossCents === null || bankedGrossCents <= 0)) {
+      return NextResponse.json({ error: 'Enter the amount that actually reached the bank' }, { status: 400 })
+    }
+    if (!paymentDate && bankedGrossCents !== null) {
+      return NextResponse.json({ error: 'Add the bank payment date before entering the banked amount' }, { status: 400 })
+    }
+    if (body.cashDiscountRate && cashDiscountRate === null) {
+      return NextResponse.json({ error: 'Cash discount must be a valid percentage' }, { status: 400 })
+    }
+    if (body.cashDiscountDays && cashDiscountDays === null) {
+      return NextResponse.json({ error: 'Cash discount days must be between 1 and 365' }, { status: 400 })
+    }
     if (!Array.isArray(body.workSessions)) {
       return NextResponse.json({ error: 'Work sessions must be supplied when editing a remittance' }, { status: 400 })
     }
@@ -70,6 +86,12 @@ export async function PATCH(
           documentDate,
           expectedPaymentDate,
           paymentDate,
+          bankedGrossAmount: paymentDate && bankedGrossCents !== null
+            ? decimalFromCents(bankedGrossCents)
+            : null,
+          cashDiscountRate: cashDiscountRate === null ? null : cashDiscountRate.toFixed(2),
+          cashDiscountDays,
+          reconciliationNote: optionalString(body.reconciliationNote, 1000),
           netAmount: decimalFromCents(netCents),
           vatAmount: decimalFromCents(vatCents),
           grossAmount: decimalFromCents(grossCents),
@@ -111,10 +133,32 @@ export async function PATCH(
   if (!paymentDate) {
     return NextResponse.json({ error: 'Enter the date the payment reached the bank' }, { status: 400 })
   }
+  const bankedGrossCents = parseMoneyToCents(body.bankedGrossAmount)
+  if (bankedGrossCents === null || bankedGrossCents <= 0) {
+    return NextResponse.json({ error: 'Enter the amount that actually reached the bank' }, { status: 400 })
+  }
+  const cashDiscountRate = body.cashDiscountRate === undefined
+    ? (entry.cashDiscountRate === null ? null : Number(entry.cashDiscountRate))
+    : parseCashDiscountRate(body.cashDiscountRate)
+  const cashDiscountDays = body.cashDiscountDays === undefined
+    ? entry.cashDiscountDays
+    : parseCashDiscountDays(body.cashDiscountDays)
+  if (body.cashDiscountRate && cashDiscountRate === null) {
+    return NextResponse.json({ error: 'Cash discount must be a valid percentage' }, { status: 400 })
+  }
+  if (body.cashDiscountDays && cashDiscountDays === null) {
+    return NextResponse.json({ error: 'Cash discount days must be between 1 and 365' }, { status: 400 })
+  }
 
   const updated = await prisma.taxCashEntry.update({
     where: { id },
-    data: { paymentDate },
+    data: {
+      paymentDate,
+      bankedGrossAmount: decimalFromCents(bankedGrossCents),
+      cashDiscountRate: cashDiscountRate === null ? null : cashDiscountRate.toFixed(2),
+      cashDiscountDays,
+      reconciliationNote: optionalString(body.reconciliationNote, 1000),
+    },
   })
   await rebuildCalculatedVat(session.userId)
   await logAudit(session.userId, 'UPDATE', 'TaxCashEntry', id)

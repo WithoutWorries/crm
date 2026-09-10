@@ -26,6 +26,7 @@ import { cn } from '@/lib/utils'
 import { RemittanceUploadDialog } from '@/components/tax/remittance-upload-dialog'
 import { TaxHorizonChart } from '@/components/tax/tax-horizon-chart'
 import { WorkYearSection } from '@/components/tax/work-year-section'
+import { reconcileRemittance } from '@/lib/remittance-reconciliation'
 
 type VatFrequency = 'UNKNOWN' | 'MONTHLY' | 'QUARTERLY'
 type LiabilityType = 'VAT' | 'INCOME_TAX_PREPAYMENT' | 'PRIOR_YEAR_SETTLEMENT' | 'OTHER'
@@ -90,6 +91,14 @@ export interface TaxDashboardData {
     netCents: number
     vatCents: number
     grossCents: number
+    effectiveVatCents: number
+    effectiveGrossCents: number
+    bankedGrossCents: number | null
+    adjustmentCents: number | null
+    reconciliationStatus: 'PENDING' | 'BANK_AMOUNT_UNCONFIRMED' | 'MATCHED' | 'CASH_DISCOUNT' | 'UNEXPLAINED_DIFFERENCE'
+    cashDiscountRate: number | null
+    cashDiscountDays: number | null
+    reconciliationNote: string | null
     vatRate: number | null
     documentDate: string | null
     expectedPaymentDate: string | null
@@ -389,15 +398,18 @@ export function TaxHorizon({ initialData }: { initialData?: TaxDashboardData }) 
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
                       <p className="truncate text-sm font-semibold text-slate-800 dark:text-fmea-text">
-                        {entry.reference ? `Document ${entry.reference}` : fallbackLabel}
+                      {entry.reference ? `Document ${entry.reference}` : fallbackLabel}
                       </p>
                       {paymentPending && <span className="shrink-0 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[9px] font-semibold text-amber-700 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-300">Payment pending</span>}
+                      {entry.reconciliationStatus === 'CASH_DISCOUNT' && <span className="shrink-0 rounded-full border border-violet-200 bg-violet-50 px-2 py-0.5 text-[9px] font-semibold text-violet-700 dark:border-violet-900/60 dark:bg-violet-950/30 dark:text-violet-300">Cash discount matched</span>}
+                      {entry.reconciliationStatus === 'UNEXPLAINED_DIFFERENCE' && <span className="shrink-0 rounded-full border border-rose-200 bg-rose-50 px-2 py-0.5 text-[9px] font-semibold text-rose-700 dark:border-rose-900/60 dark:bg-rose-950/30 dark:text-rose-300">Difference to resolve</span>}
+                      {entry.reconciliationStatus === 'BANK_AMOUNT_UNCONFIRMED' && <span className="shrink-0 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[9px] font-semibold text-amber-700 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-300">Bank amount unconfirmed</span>}
                     </div>
                     {entry.type === 'CLIENT_REMITTANCE' && <button type="button" onClick={() => { setSelectedRemittanceId(entry.id); setDialog('reference') }} className={cn('mt-1 text-[10px] font-semibold hover:underline', entry.reference ? 'text-slate-400 dark:text-fmea-dim' : 'rounded-md bg-amber-100 px-2 py-1 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300')}>{entry.reference ? 'Correct document number' : 'Add document number'}</button>}
                     {entry.reference && entry.description && <p className="mt-1 truncate text-xs font-medium text-slate-600 dark:text-fmea-text">{entry.description}</p>}
                     <p className="mt-0.5 text-xs text-slate-400 dark:text-fmea-dim">
                       {entry.paymentDate
-                        ? `${dateLabel(entry.paymentDate)} · VAT ${money(entry.vatCents, currency)}`
+                        ? `${dateLabel(entry.paymentDate)} · VAT ${money(entry.effectiveVatCents, currency)}`
                         : `Remittance ${entry.documentDate ? dateLabel(entry.documentDate) : 'date not recorded'}${entry.expectedPaymentDate ? ` · expected ${dateLabel(entry.expectedPaymentDate)}` : ''} · VAT not yet reserved`}
                       {entry.clientCalculated ? ' · client calculated' : ''}
                       {entry.aiExtracted ? ' · AI reviewed' : ''}
@@ -406,7 +418,7 @@ export function TaxHorizon({ initialData }: { initialData?: TaxDashboardData }) 
                   </div>
                   <div className="flex shrink-0 items-center justify-between gap-2 sm:justify-end">
                     <p className={cn('text-sm font-semibold tabular-nums', entry.type === 'EXPENSE_VAT' ? 'text-rose-600 dark:text-rose-300' : paymentPending ? 'text-amber-700 dark:text-amber-300' : 'text-slate-900 dark:text-fmea-hi')}>
-                      {entry.type === 'EXPENSE_VAT' ? '−' : paymentPending ? 'Expected ' : '+'}{money(entry.grossCents, currency)}
+                      {entry.type === 'EXPENSE_VAT' ? '−' : paymentPending ? 'Expected ' : '+'}{money(entry.type === 'CLIENT_REMITTANCE' && entry.paymentDate ? entry.effectiveGrossCents : entry.grossCents, currency)}
                     </p>
                     {paymentPending && (
                       <button type="button" onClick={() => { setSelectedRemittanceId(entry.id); setDialog('payment') }} className="rounded-lg border border-cyan-200 bg-cyan-50 px-2.5 py-1.5 text-[10px] font-semibold text-cyan-800 hover:bg-cyan-100 dark:border-cyan-900/60 dark:bg-cyan-950/30 dark:text-cyan-300">
@@ -428,7 +440,7 @@ export function TaxHorizon({ initialData }: { initialData?: TaxDashboardData }) 
       {dialog === 'remittance-upload' && <RemittanceUploadDialog onClose={() => setDialog(null)} onSaved={async () => { setDialog(null); await load() }} />}
       {dialog === 'liability' && <LiabilityDialog onClose={() => setDialog(null)} onSaved={async () => { setDialog(null); await load() }} />}
       {dialog === 'settings' && <SettingsDialog profile={data.profile} onClose={() => setDialog(null)} onSaved={async () => { setDialog(null); await load() }} />}
-      {dialog === 'payment' && selectedRemittanceId && <PaymentDialog entryId={selectedRemittanceId} onClose={() => { setDialog(null); setSelectedRemittanceId(null) }} onSaved={async () => { setDialog(null); setSelectedRemittanceId(null); await load() }} />}
+      {dialog === 'payment' && selectedRemittanceId && <PaymentDialog entry={data.recentEntries.find((entry) => entry.id === selectedRemittanceId)!} onClose={() => { setDialog(null); setSelectedRemittanceId(null) }} onSaved={async () => { setDialog(null); setSelectedRemittanceId(null); await load() }} />}
       {dialog === 'reference' && selectedRemittanceId && <ReferenceDialog entryId={selectedRemittanceId} initialReference={data.recentEntries.find((entry) => entry.id === selectedRemittanceId)?.reference ?? ''} onClose={() => { setDialog(null); setSelectedRemittanceId(null) }} onSaved={async () => { setDialog(null); setSelectedRemittanceId(null); await load() }} />}
     </div>
   )
@@ -474,6 +486,10 @@ function EntryDialog({ mode, onClose, onSaved }: { mode: 'income' | 'remittance'
           documentDate: isRemittance ? form.get('documentDate') : undefined,
           expectedPaymentDate: isRemittance ? form.get('expectedPaymentDate') : undefined,
           paymentDate: form.get('paymentDate'),
+          bankedGrossAmount: isRemittance ? form.get('bankedGrossAmount') : undefined,
+          cashDiscountRate: isRemittance ? form.get('cashDiscountRate') : undefined,
+          cashDiscountDays: isRemittance ? form.get('cashDiscountDays') : undefined,
+          reconciliationNote: isRemittance ? form.get('reconciliationNote') : undefined,
           netAmount: net,
           vatAmount: isInvoice ? undefined : vat,
           grossAmount: isRemittance ? gross : undefined,
@@ -495,23 +511,25 @@ function EntryDialog({ mode, onClose, onSaved }: { mode: 'income' | 'remittance'
               <label className={LABEL}>Remittance date<input className={FIELD} name="documentDate" type="date" defaultValue={todayInput()} required /></label>
               <label className={LABEL}>Expected payment <span className="font-normal text-slate-400">(optional)</span><input className={FIELD} name="expectedPaymentDate" type="date" /></label>
               <label className={LABEL}>Payment received <span className="font-normal text-slate-400">(optional)</span><input className={FIELD} name="paymentDate" type="date" /></label>
+              <label className={LABEL}>Amount received by bank <span className="font-normal text-slate-400">(required with payment)</span><input className={FIELD} name="bankedGrossAmount" inputMode="decimal" placeholder="Check the statement" /></label>
             </>
           ) : (
             <label className={LABEL}>Payment date<input className={FIELD} name="paymentDate" type="date" defaultValue={todayInput()} required /></label>
           )}
           <label className={LABEL}>{isRemittance ? 'Document / invoice number' : <>Reference <span className="font-normal text-slate-400">(optional)</span></>}<input className={FIELD} name="reference" maxLength={120} placeholder={isRemittance ? 'Enter exactly as printed' : 'Invoice or client reference'} required={isRemittance} /></label>
         </div>
-        {isRemittance && <p className="-mt-2 text-xs leading-5 text-slate-500 dark:text-fmea-dim">Leave payment received blank until the money reaches the bank. No VAT will be reserved before then.</p>}
+        {isRemittance && <p className="-mt-2 text-xs leading-5 text-slate-500 dark:text-fmea-dim">Leave both payment fields blank until the money reaches the bank. The banked amount is checked against the stated gross.</p>}
         <label className={LABEL}>Description <span className="font-normal text-slate-400">(optional)</span><input className={FIELD} name="description" maxLength={500} placeholder={isExpense ? 'Software, travel, equipment…' : 'Client or work package'} /></label>
         <div className={cn('grid gap-4', isRemittance ? 'sm:grid-cols-3' : 'sm:grid-cols-2')}>
-          <label className={LABEL}>Net amount (€)<input className={FIELD} value={net} onChange={(event) => setNet(event.target.value)} inputMode="decimal" placeholder="0.00" required /></label>
+          <label className={LABEL}>{isRemittance ? 'Stated net (€)' : 'Net amount (€)'}<input className={FIELD} value={net} onChange={(event) => setNet(event.target.value)} inputMode="decimal" placeholder="0.00" required /></label>
           {isInvoice ? (
             <label className={LABEL}>VAT rate<select className={FIELD} value={vatRate} onChange={(event) => setVatRate(event.target.value)}><option value="19">19%</option><option value="7">7%</option><option value="0">0%</option></select></label>
           ) : (
-            <label className={LABEL}>VAT amount (€)<input className={FIELD} value={vat} onChange={(event) => setVat(event.target.value)} inputMode="decimal" placeholder="0.00" required /></label>
+            <label className={LABEL}>{isRemittance ? 'Stated VAT (€)' : 'VAT amount (€)'}<input className={FIELD} value={vat} onChange={(event) => setVat(event.target.value)} inputMode="decimal" placeholder="0.00" required /></label>
           )}
-          {isRemittance && <label className={LABEL}>Gross amount (€)<input className={FIELD} value={gross} onChange={(event) => setGross(event.target.value)} inputMode="decimal" placeholder="0.00" required /></label>}
+          {isRemittance && <label className={LABEL}>Stated gross (€)<input className={FIELD} value={gross} onChange={(event) => setGross(event.target.value)} inputMode="decimal" placeholder="0.00" required /></label>}
         </div>
+        {isRemittance && <div className="rounded-2xl border border-violet-200 bg-violet-50/70 p-4 dark:border-violet-900/60 dark:bg-violet-950/20"><p className="text-xs font-semibold text-violet-900 dark:text-violet-200">Cash discount terms</p><div className="mt-3 grid gap-4 sm:grid-cols-2"><label className={LABEL}>Discount (%) <span className="font-normal text-slate-400">(optional)</span><input className={FIELD} name="cashDiscountRate" inputMode="decimal" placeholder="e.g. 1.5" /></label><label className={LABEL}>Within days <span className="font-normal text-slate-400">(optional)</span><input className={FIELD} name="cashDiscountDays" type="number" min="1" max="365" placeholder="e.g. 14" /></label></div><label className={`${LABEL} mt-4`}>Reconciliation note <span className="font-normal text-slate-400">(optional)</span><textarea className={cn(FIELD, 'min-h-20 resize-y')} name="reconciliationNote" maxLength={1000} placeholder="Only needed if the banked amount needs explanation." /></label></div>}
         {preview !== null && Number.isFinite(preview) && <div className="rounded-2xl border border-cyan-100 bg-cyan-50 px-4 py-3 text-sm text-cyan-900 dark:border-cyan-900/60 dark:bg-cyan-950/20 dark:text-cyan-200">Calculated gross: <strong>{new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'EUR' }).format(preview)}</strong></div>}
         {error && <p className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</p>}
         <div className="flex justify-end"><SubmitButton saving={saving}>Save entry</SubmitButton></div>
@@ -520,17 +538,43 @@ function EntryDialog({ mode, onClose, onSaved }: { mode: 'income' | 'remittance'
   )
 }
 
-function PaymentDialog({ entryId, onClose, onSaved }: { entryId: string; onClose: () => void; onSaved: () => Promise<void> }) {
+function PaymentDialog({ entry, onClose, onSaved }: { entry: TaxDashboardData['recentEntries'][number]; onClose: () => void; onSaved: () => Promise<void> }) {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [banked, setBanked] = useState('')
+  const [discountRate, setDiscountRate] = useState(entry.cashDiscountRate?.toString() ?? '')
+  const bankedCents = Math.round(Number(banked.replace(',', '.')) * 100)
+  const parsedDiscountRate = discountRate ? Number(discountRate.replace(',', '.')) : null
+  const preview = Number.isFinite(bankedCents) && bankedCents > 0
+    ? reconcileRemittance({
+        paymentRecorded: true,
+        netCents: entry.netCents,
+        vatCents: entry.vatCents,
+        grossCents: entry.grossCents,
+        bankedGrossCents: bankedCents,
+        cashDiscountRate: parsedDiscountRate !== null && Number.isFinite(parsedDiscountRate) ? parsedDiscountRate : null,
+      })
+    : null
+  const previewStyle = preview?.status === 'CASH_DISCOUNT'
+    ? 'border-violet-200 bg-violet-50 text-violet-900 dark:border-violet-900/60 dark:bg-violet-950/20 dark:text-violet-200'
+    : preview?.status === 'UNEXPLAINED_DIFFERENCE'
+      ? 'border-rose-200 bg-rose-50 text-rose-900 dark:border-rose-900/60 dark:bg-rose-950/20 dark:text-rose-200'
+      : 'border-emerald-200 bg-emerald-50 text-emerald-900 dark:border-emerald-900/60 dark:bg-emerald-950/20 dark:text-emerald-200'
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault(); setSaving(true); setError('')
     const form = new FormData(event.currentTarget)
     try {
-      await jsonRequest(`/api/tax/entries/${entryId}`, {
+      await jsonRequest(`/api/tax/entries/${entry.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'recordPayment', paymentDate: form.get('paymentDate') }),
+        body: JSON.stringify({
+          action: 'recordPayment',
+          paymentDate: form.get('paymentDate'),
+          bankedGrossAmount: banked,
+          cashDiscountRate: discountRate,
+          cashDiscountDays: form.get('cashDiscountDays'),
+          reconciliationNote: form.get('reconciliationNote'),
+        }),
       })
       await onSaved()
     } catch (caught) {
@@ -541,11 +585,15 @@ function PaymentDialog({ entryId, onClose, onSaved }: { entryId: string; onClose
   }
 
   return (
-    <Modal title="Record payment received" description="Use the date the money reached the bank. The VAT reserve will update after saving." onClose={onClose}>
+    <Modal title="Reconcile bank payment" description="Compare the bank receipt with the amount stated on the remittance." onClose={onClose}>
       <form onSubmit={submit} className="space-y-5">
-        <label className={LABEL}>Payment received date<input className={FIELD} name="paymentDate" type="date" defaultValue={todayInput()} required /></label>
+        <div className="grid gap-4 sm:grid-cols-2"><label className={LABEL}>Payment received date<input className={FIELD} name="paymentDate" type="date" defaultValue={todayInput()} required /></label><label className={LABEL}>Amount received by bank (€)<input className={FIELD} value={banked} onChange={(event) => setBanked(event.target.value)} inputMode="decimal" autoFocus required /></label></div>
+        <div className="rounded-2xl border border-stone-200 bg-stone-50 p-4 dark:border-fmea-border dark:bg-fmea-bg3"><p className="text-xs text-slate-500 dark:text-fmea-dim">Stated gross on remittance</p><p className="mt-1 text-xl font-semibold tabular-nums text-slate-950 dark:text-fmea-hi">{money(entry.grossCents, 'EUR')}</p></div>
+        <div className="grid gap-4 sm:grid-cols-2"><label className={LABEL}>Cash discount (%) <span className="font-normal text-slate-400">(if offered)</span><input className={FIELD} value={discountRate} onChange={(event) => setDiscountRate(event.target.value)} inputMode="decimal" placeholder="e.g. 1.5" /></label><label className={LABEL}>Within days <span className="font-normal text-slate-400">(optional)</span><input className={FIELD} name="cashDiscountDays" type="number" min="1" max="365" defaultValue={entry.cashDiscountDays ?? ''} /></label></div>
+        {preview && <div className={cn('rounded-2xl border p-4', previewStyle)}><p className="text-xs font-semibold uppercase tracking-[0.1em]">{preview.status === 'MATCHED' ? 'Matched in full' : preview.status === 'CASH_DISCOUNT' ? 'Matched with cash discount' : 'Difference needs explanation'}</p><div className="mt-3 grid grid-cols-3 gap-3 text-xs"><div><span className="block opacity-65">Adjustment</span><strong className="mt-1 block text-sm tabular-nums">{money(preview.adjustmentCents ?? 0, 'EUR')}</strong></div><div><span className="block opacity-65">Effective net</span><strong className="mt-1 block text-sm tabular-nums">{money(preview.effectiveNetCents, 'EUR')}</strong></div><div><span className="block opacity-65">Effective VAT</span><strong className="mt-1 block text-sm tabular-nums">{money(preview.effectiveVatCents, 'EUR')}</strong></div></div>{preview.status === 'UNEXPLAINED_DIFFERENCE' && <p className="mt-3 text-xs leading-5">The stated VAT will remain in the reserve until the difference is resolved.</p>}</div>}
+        <label className={LABEL}>Reconciliation note <span className="font-normal text-slate-400">(optional)</span><textarea className={cn(FIELD, 'min-h-20 resize-y')} name="reconciliationNote" defaultValue={entry.reconciliationNote ?? ''} maxLength={1000} placeholder="Record anything your accountant will need to understand." /></label>
         {error && <p className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</p>}
-        <div className="flex justify-end"><SubmitButton saving={saving}>Record payment</SubmitButton></div>
+        <div className="flex justify-end"><SubmitButton saving={saving}>Save reconciliation</SubmitButton></div>
       </form>
     </Modal>
   )

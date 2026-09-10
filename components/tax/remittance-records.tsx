@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { FormEvent, ReactNode, useEffect, useMemo, useState } from 'react'
-import { ArrowLeft, Check, FileCheck2, Loader2, Pencil, Plus, ReceiptText, Search, Trash2, X } from 'lucide-react'
+import { ArrowLeft, Check, Download, FileCheck2, Loader2, Pencil, Plus, ReceiptText, Search, Trash2, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface WorkSessionRow {
@@ -24,6 +24,15 @@ interface RemittanceRecord {
   netCents: number
   vatCents: number
   grossCents: number
+  bankedGrossCents: number | null
+  adjustmentCents: number | null
+  effectiveNetCents: number
+  effectiveVatCents: number
+  effectiveGrossCents: number
+  reconciliationStatus: 'PENDING' | 'BANK_AMOUNT_UNCONFIRMED' | 'MATCHED' | 'CASH_DISCOUNT' | 'UNEXPLAINED_DIFFERENCE'
+  cashDiscountRate: number | null
+  cashDiscountDays: number | null
+  reconciliationNote: string | null
   aiExtracted: boolean
   sourceFileName: string | null
   createdAt: string
@@ -31,7 +40,7 @@ interface RemittanceRecord {
   workSessions: WorkSessionRow[]
 }
 
-type Filter = 'all' | 'pending' | 'paid' | 'missing'
+type Filter = 'all' | 'pending' | 'paid' | 'review'
 
 const FIELD = 'mt-1.5 w-full rounded-xl border border-stone-300 bg-white px-3.5 py-2.5 text-sm text-slate-950 outline-none transition focus:border-cyan-700 focus:ring-4 focus:ring-cyan-100 dark:border-fmea-border dark:bg-fmea-bg3 dark:text-fmea-hi dark:focus:border-fmea-accent dark:focus:ring-cyan-950/60'
 const LABEL = 'block text-xs font-semibold text-slate-600 dark:text-fmea-dim'
@@ -64,6 +73,7 @@ export function RemittanceRecords() {
   const [filter, setFilter] = useState<Filter>('all')
   const [editing, setEditing] = useState<RemittanceRecord | null>(null)
   const [removingId, setRemovingId] = useState<string | null>(null)
+  const [exportYear, setExportYear] = useState(new Date().getFullYear())
 
   const load = async () => {
     try {
@@ -84,7 +94,7 @@ export function RemittanceRecords() {
     return records.filter((record) => {
       if (filter === 'pending' && record.paymentDate) return false
       if (filter === 'paid' && !record.paymentDate) return false
-      if (filter === 'missing' && record.reference) return false
+      if (filter === 'review' && record.reference && record.reconciliationStatus !== 'UNEXPLAINED_DIFFERENCE' && record.reconciliationStatus !== 'BANK_AMOUNT_UNCONFIRMED') return false
       if (!needle) return true
       return [
         record.reference,
@@ -96,7 +106,7 @@ export function RemittanceRecords() {
   }, [filter, query, records])
 
   const pendingCount = records.filter((record) => !record.paymentDate).length
-  const missingCount = records.filter((record) => !record.reference).length
+  const reviewCount = records.filter((record) => !record.reference || record.reconciliationStatus === 'UNEXPLAINED_DIFFERENCE' || record.reconciliationStatus === 'BANK_AMOUNT_UNCONFIRMED').length
 
   const remove = async (record: RemittanceRecord) => {
     if (!window.confirm(`Delete remittance ${record.reference || dateLabel(record.documentDate)} and its work records?`)) return
@@ -120,12 +130,13 @@ export function RemittanceRecords() {
           <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950 dark:text-fmea-hi sm:text-4xl">Remittance records</h1>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600 dark:text-fmea-dim">Every client remittance in one place, identified by the number printed on the notice.</p>
         </div>
+        <div className="flex items-end gap-2"><label className={LABEL}>Accountant export<select className={`${FIELD} min-w-28`} value={exportYear} onChange={(event) => setExportYear(Number(event.target.value))}>{Array.from({ length: new Date().getFullYear() - 2011 + 1 }, (_, index) => new Date().getFullYear() - index).map((year) => <option key={year} value={year}>{year}</option>)}</select></label><a href={`/api/tax/accountant-export?year=${exportYear}`} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-cyan-800 px-4 py-2.5 text-sm font-semibold text-white hover:bg-cyan-900 dark:bg-fmea-accent dark:text-fmea-bg"><Download className="h-4 w-4" />CSV</a></div>
       </header>
 
       <section className="grid gap-3 sm:grid-cols-3">
         <Summary label="Total remittances" value={String(records.length)} tone="cyan" />
         <Summary label="Awaiting bank payment" value={String(pendingCount)} tone="amber" />
-        <Summary label="Missing document number" value={String(missingCount)} tone={missingCount ? 'rose' : 'slate'} />
+        <Summary label="Needs reconciliation" value={String(reviewCount)} tone={reviewCount ? 'rose' : 'slate'} />
       </section>
 
       <section className="overflow-hidden rounded-3xl border border-stone-200 bg-white shadow-sm dark:border-fmea-border dark:bg-fmea-bg2">
@@ -135,7 +146,7 @@ export function RemittanceRecords() {
             <input value={query} onChange={(event) => setQuery(event.target.value)} className="w-full rounded-xl border border-stone-300 bg-white py-2.5 pl-10 pr-3 text-sm text-slate-950 outline-none focus:border-cyan-600 focus:ring-4 focus:ring-cyan-100 dark:border-fmea-border dark:bg-fmea-bg3 dark:text-fmea-hi" placeholder="Search document number, project or description" />
           </label>
           <div className="flex gap-1 overflow-x-auto" role="tablist" aria-label="Remittance status">
-            {([['all', 'All'], ['pending', 'Awaiting payment'], ['paid', 'Paid'], ['missing', 'Missing number']] as const).map(([value, label]) => <button key={value} type="button" onClick={() => setFilter(value)} className={cn('whitespace-nowrap rounded-lg px-3 py-2 text-xs font-semibold transition', filter === value ? 'bg-cyan-800 text-white dark:bg-fmea-accent dark:text-fmea-bg' : 'text-slate-500 hover:bg-stone-100 dark:text-fmea-dim dark:hover:bg-fmea-bg3')}>{label}</button>)}
+            {([['all', 'All'], ['pending', 'Awaiting payment'], ['paid', 'Paid'], ['review', 'Needs review']] as const).map(([value, label]) => <button key={value} type="button" onClick={() => setFilter(value)} className={cn('whitespace-nowrap rounded-lg px-3 py-2 text-xs font-semibold transition', filter === value ? 'bg-cyan-800 text-white dark:bg-fmea-accent dark:text-fmea-bg' : 'text-slate-500 hover:bg-stone-100 dark:text-fmea-dim dark:hover:bg-fmea-bg3')}>{label}</button>)}
           </div>
         </div>
 
@@ -154,6 +165,9 @@ export function RemittanceRecords() {
                     <div className="flex flex-wrap items-center gap-2">
                       {record.reference ? <h2 className="text-base font-semibold text-slate-950 dark:text-fmea-hi">Document {record.reference}</h2> : <button type="button" onClick={() => setEditing(record)} className="rounded-lg bg-rose-600 px-2.5 py-1 text-xs font-bold text-white">Missing number · add now</button>}
                       {record.aiExtracted && <span className="rounded-full border border-violet-200 bg-violet-50 px-2 py-0.5 text-[9px] font-semibold text-violet-700 dark:border-violet-900/70 dark:bg-violet-950/30 dark:text-violet-300">AI reviewed</span>}
+                      {record.reconciliationStatus === 'CASH_DISCOUNT' && <span className="rounded-full border border-violet-200 bg-violet-50 px-2 py-0.5 text-[9px] font-semibold text-violet-700 dark:border-violet-900/70 dark:bg-violet-950/30 dark:text-violet-300">Cash discount matched</span>}
+                      {record.reconciliationStatus === 'UNEXPLAINED_DIFFERENCE' && <span className="rounded-full bg-rose-600 px-2 py-0.5 text-[9px] font-semibold text-white">Difference to resolve</span>}
+                      {record.reconciliationStatus === 'BANK_AMOUNT_UNCONFIRMED' && <span className="rounded-full bg-amber-500 px-2 py-0.5 text-[9px] font-semibold text-slate-950">Bank amount unconfirmed</span>}
                     </div>
                     <p className="mt-1 truncate text-sm text-slate-600 dark:text-fmea-text">{record.description || project || 'No description recorded'}</p>
                     {record.sourceFileName && <p className="mt-1 truncate text-[10px] text-slate-400 dark:text-fmea-dim">Source: {record.sourceFileName}</p>}
@@ -163,8 +177,9 @@ export function RemittanceRecords() {
                     <RecordDate label={record.paymentDate ? 'Paid' : 'Expected'} value={record.paymentDate || record.expectedPaymentDate} important={!record.paymentDate} />
                   </div>
                   <div>
-                    <p className="text-2xl font-semibold tracking-tight tabular-nums text-slate-950 dark:text-fmea-hi">{money(record.grossCents)}</p>
-                    <p className="mt-1 text-xs text-slate-400 dark:text-fmea-dim">VAT {money(record.vatCents)}{hours ? ` · ${hours.toFixed(2)} hours` : ''}</p>
+                    <p className="text-2xl font-semibold tracking-tight tabular-nums text-slate-950 dark:text-fmea-hi">{money(record.paymentDate ? record.effectiveGrossCents : record.grossCents)}</p>
+                    <p className="mt-1 text-xs text-slate-400 dark:text-fmea-dim">Effective VAT {money(record.effectiveVatCents)}{hours ? ` · ${hours.toFixed(2)} hours` : ''}</p>
+                    {record.adjustmentCents !== null && record.adjustmentCents !== 0 && <p className="mt-1 text-[10px] font-semibold text-violet-700 dark:text-violet-300">Stated {money(record.grossCents)} · difference {money(record.adjustmentCents)}</p>}
                     <span className={cn('mt-2 inline-block rounded-full px-2 py-1 text-[10px] font-semibold', record.paymentDate ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300' : 'bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300')}>{record.paymentDate ? 'Payment recorded' : 'Awaiting payment'}</span>
                   </div>
                   <div className="flex items-center justify-end gap-2">
@@ -219,6 +234,10 @@ function EditRemittanceDialog({ record, onClose, onSaved }: { record: Remittance
           documentDate: form.get('documentDate'),
           expectedPaymentDate: form.get('expectedPaymentDate'),
           paymentDate: form.get('paymentDate'),
+          bankedGrossAmount: form.get('bankedGrossAmount'),
+          cashDiscountRate: form.get('cashDiscountRate'),
+          cashDiscountDays: form.get('cashDiscountDays'),
+          reconciliationNote: form.get('reconciliationNote'),
           projectLabel: form.get('projectLabel'),
           netAmount: form.get('netAmount'),
           vatAmount: form.get('vatAmount'),
@@ -234,5 +253,46 @@ function EditRemittanceDialog({ record, onClose, onSaved }: { record: Remittance
     }
   }
 
-  return <Modal title="Edit remittance" description="Correct the stored record. The VAT reserve and work calendar will be recalculated." onClose={onClose}><form onSubmit={submit} className="space-y-6 p-5 sm:p-6"><section><div className="grid gap-4 sm:grid-cols-2"><label className={LABEL}>Document / invoice number<input className={FIELD} name="reference" defaultValue={record.reference ?? ''} maxLength={120} autoFocus required /></label><label className={LABEL}>Remittance date<input className={FIELD} name="documentDate" type="date" defaultValue={record.documentDate ?? ''} required /></label><label className={LABEL}>Expected payment <span className="font-normal text-slate-400">(optional)</span><input className={FIELD} name="expectedPaymentDate" type="date" defaultValue={record.expectedPaymentDate ?? ''} /></label><label className={LABEL}>Actual bank payment <span className="font-normal text-slate-400">(optional)</span><input className={FIELD} name="paymentDate" type="date" defaultValue={record.paymentDate ?? ''} /></label><label className={LABEL}>Project <span className="font-normal text-slate-400">(optional)</span><input className={FIELD} name="projectLabel" defaultValue={project} maxLength={160} /></label><label className={LABEL}>Description <span className="font-normal text-slate-400">(optional)</span><input className={FIELD} name="description" defaultValue={record.description ?? ''} maxLength={500} /></label></div><div className="mt-4 grid gap-4 sm:grid-cols-3"><label className={LABEL}>Net amount (€)<input className={FIELD} name="netAmount" defaultValue={decimal(record.netCents)} inputMode="decimal" required /></label><label className={LABEL}>VAT amount (€)<input className={FIELD} name="vatAmount" defaultValue={decimal(record.vatCents)} inputMode="decimal" required /></label><label className={LABEL}>Gross amount (€)<input className={FIELD} name="grossAmount" defaultValue={decimal(record.grossCents)} inputMode="decimal" required /></label></div>{record.sourceFileName && <p className="mt-3 text-[10px] text-slate-400 dark:text-fmea-dim">Originally extracted from {record.sourceFileName}. The PDF itself was not retained.</p>}</section><section className="border-t border-stone-200 pt-5 dark:border-fmea-border"><div className="flex items-end justify-between gap-3"><div><h3 className="text-sm font-semibold text-slate-900 dark:text-fmea-hi">Work dates</h3><p className="mt-1 text-xs text-slate-400 dark:text-fmea-dim">Changes also update the annual work map.</p></div><button type="button" onClick={() => setWorkSessions((current) => [...current, { workDate: record.documentDate ?? '', hours: '', activity: null, projectLabel: project || null, sourcePage: null }])} className="inline-flex items-center gap-1.5 text-xs font-semibold text-cyan-800 dark:text-fmea-accent"><Plus className="h-3.5 w-3.5" />Add date</button></div><div className="mt-4 max-h-72 space-y-2 overflow-y-auto pr-1">{workSessions.map((session, index) => <div key={session.id ?? index} className="grid gap-2 rounded-xl border border-stone-200 bg-stone-50 p-3 dark:border-fmea-border dark:bg-fmea-bg3 sm:grid-cols-[9rem_6rem_minmax(0,1fr)_2rem]"><label className="text-[10px] font-semibold text-slate-400">Date<input className={FIELD} type="date" value={session.workDate} onChange={(event) => setWorkSessions((current) => current.map((row, rowIndex) => rowIndex === index ? { ...row, workDate: event.target.value } : row))} required /></label><label className="text-[10px] font-semibold text-slate-400">Hours<input className={FIELD} value={session.hours} onChange={(event) => setWorkSessions((current) => current.map((row, rowIndex) => rowIndex === index ? { ...row, hours: event.target.value } : row))} inputMode="decimal" required /></label><label className="text-[10px] font-semibold text-slate-400">Activity<input className={FIELD} value={session.activity ?? ''} onChange={(event) => setWorkSessions((current) => current.map((row, rowIndex) => rowIndex === index ? { ...row, activity: event.target.value } : row))} maxLength={240} /></label><button type="button" onClick={() => setWorkSessions((current) => current.filter((_, rowIndex) => rowIndex !== index))} className="mt-5 flex h-9 w-9 items-center justify-center rounded-lg text-stone-400 hover:bg-rose-50 hover:text-rose-600" aria-label={`Remove work row ${index + 1}`}><Trash2 className="h-4 w-4" /></button></div>)}{!workSessions.length && <p className="rounded-xl border border-dashed border-stone-300 px-4 py-7 text-center text-xs text-slate-400 dark:border-fmea-border">No work dates recorded.</p>}</div></section>{error && <p className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</p>}<div className="flex justify-end"><button type="submit" disabled={saving} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-cyan-800 px-5 py-2.5 text-sm font-semibold text-white hover:bg-cyan-900 disabled:opacity-60 dark:bg-fmea-accent dark:text-fmea-bg">{saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}{saving ? 'Saving…' : 'Save changes'}</button></div></form></Modal>
+  return (
+    <Modal title="Edit remittance" description="Keep the document figures and bank receipt separate. VAT and the work calendar recalculate after saving." onClose={onClose}>
+      <form onSubmit={submit} className="space-y-6 p-5 sm:p-6">
+        <section>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className={LABEL}>Document / invoice number<input className={FIELD} name="reference" defaultValue={record.reference ?? ''} maxLength={120} autoFocus required /></label>
+            <label className={LABEL}>Remittance date<input className={FIELD} name="documentDate" type="date" defaultValue={record.documentDate ?? ''} required /></label>
+            <label className={LABEL}>Expected payment <span className="font-normal text-slate-400">(optional)</span><input className={FIELD} name="expectedPaymentDate" type="date" defaultValue={record.expectedPaymentDate ?? ''} /></label>
+            <label className={LABEL}>Actual bank payment <span className="font-normal text-slate-400">(optional)</span><input className={FIELD} name="paymentDate" type="date" defaultValue={record.paymentDate ?? ''} /></label>
+            <label className={LABEL}>Amount received by bank <span className="font-normal text-slate-400">(required with payment)</span><input className={FIELD} name="bankedGrossAmount" defaultValue={record.bankedGrossCents === null ? '' : decimal(record.bankedGrossCents)} inputMode="decimal" placeholder="Check the statement" /></label>
+            <label className={LABEL}>Project <span className="font-normal text-slate-400">(optional)</span><input className={FIELD} name="projectLabel" defaultValue={project} maxLength={160} /></label>
+            <label className={LABEL}>Description <span className="font-normal text-slate-400">(optional)</span><input className={FIELD} name="description" defaultValue={record.description ?? ''} maxLength={500} /></label>
+          </div>
+          <div className="mt-4 grid gap-4 sm:grid-cols-3">
+            <label className={LABEL}>Stated net (€)<input className={FIELD} name="netAmount" defaultValue={decimal(record.netCents)} inputMode="decimal" required /></label>
+            <label className={LABEL}>Stated VAT (€)<input className={FIELD} name="vatAmount" defaultValue={decimal(record.vatCents)} inputMode="decimal" required /></label>
+            <label className={LABEL}>Stated gross (€)<input className={FIELD} name="grossAmount" defaultValue={decimal(record.grossCents)} inputMode="decimal" required /></label>
+          </div>
+          <div className="mt-4 rounded-2xl border border-violet-200 bg-violet-50/70 p-4 dark:border-violet-900/60 dark:bg-violet-950/20">
+            <p className="text-xs font-semibold text-violet-900 dark:text-violet-200">Cash discount and reconciliation</p>
+            <div className="mt-3 grid gap-4 sm:grid-cols-2">
+              <label className={LABEL}>Discount (%) <span className="font-normal text-slate-400">(optional)</span><input className={FIELD} name="cashDiscountRate" defaultValue={record.cashDiscountRate ?? ''} inputMode="decimal" /></label>
+              <label className={LABEL}>Within days <span className="font-normal text-slate-400">(optional)</span><input className={FIELD} name="cashDiscountDays" type="number" min="1" max="365" defaultValue={record.cashDiscountDays ?? ''} /></label>
+            </div>
+            <label className={`${LABEL} mt-4`}>Reconciliation note <span className="font-normal text-slate-400">(optional)</span><textarea className={cn(FIELD, 'min-h-20 resize-y')} name="reconciliationNote" defaultValue={record.reconciliationNote ?? ''} maxLength={1000} /></label>
+          </div>
+          {record.sourceFileName && <p className="mt-3 text-[10px] text-slate-400 dark:text-fmea-dim">Originally extracted from {record.sourceFileName}. The PDF itself was not retained.</p>}
+        </section>
+
+        <section className="border-t border-stone-200 pt-5 dark:border-fmea-border">
+          <div className="flex items-end justify-between gap-3"><div><h3 className="text-sm font-semibold text-slate-900 dark:text-fmea-hi">Work dates</h3><p className="mt-1 text-xs text-slate-400 dark:text-fmea-dim">Changes also update the annual work map.</p></div><button type="button" onClick={() => setWorkSessions((current) => [...current, { workDate: record.documentDate ?? '', hours: '', activity: null, projectLabel: project || null, sourcePage: null }])} className="inline-flex items-center gap-1.5 text-xs font-semibold text-cyan-800 dark:text-fmea-accent"><Plus className="h-3.5 w-3.5" />Add date</button></div>
+          <div className="mt-4 max-h-72 space-y-2 overflow-y-auto pr-1">
+            {workSessions.map((session, index) => <div key={session.id ?? index} className="grid gap-2 rounded-xl border border-stone-200 bg-stone-50 p-3 dark:border-fmea-border dark:bg-fmea-bg3 sm:grid-cols-[9rem_6rem_minmax(0,1fr)_2rem]"><label className="text-[10px] font-semibold text-slate-400">Date<input className={FIELD} type="date" value={session.workDate} onChange={(event) => setWorkSessions((current) => current.map((row, rowIndex) => rowIndex === index ? { ...row, workDate: event.target.value } : row))} required /></label><label className="text-[10px] font-semibold text-slate-400">Hours<input className={FIELD} value={session.hours} onChange={(event) => setWorkSessions((current) => current.map((row, rowIndex) => rowIndex === index ? { ...row, hours: event.target.value } : row))} inputMode="decimal" required /></label><label className="text-[10px] font-semibold text-slate-400">Activity<input className={FIELD} value={session.activity ?? ''} onChange={(event) => setWorkSessions((current) => current.map((row, rowIndex) => rowIndex === index ? { ...row, activity: event.target.value } : row))} maxLength={240} /></label><button type="button" onClick={() => setWorkSessions((current) => current.filter((_, rowIndex) => rowIndex !== index))} className="mt-5 flex h-9 w-9 items-center justify-center rounded-lg text-stone-400 hover:bg-rose-50 hover:text-rose-600" aria-label={`Remove work row ${index + 1}`}><Trash2 className="h-4 w-4" /></button></div>)}
+            {!workSessions.length && <p className="rounded-xl border border-dashed border-stone-300 px-4 py-7 text-center text-xs text-slate-400 dark:border-fmea-border">No work dates recorded.</p>}
+          </div>
+        </section>
+
+        {error && <p className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</p>}
+        <div className="flex justify-end"><button type="submit" disabled={saving} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-cyan-800 px-5 py-2.5 text-sm font-semibold text-white hover:bg-cyan-900 disabled:opacity-60 dark:bg-fmea-accent dark:text-fmea-bg">{saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}{saving ? 'Saving…' : 'Save changes'}</button></div>
+      </form>
+    </Modal>
+  )
 }

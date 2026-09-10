@@ -23,6 +23,8 @@ interface Extraction {
   vatAmount: string | null
   grossAmount: string | null
   vatRate: number | null
+  cashDiscountRate: number | null
+  cashDiscountDays: number | null
   currency: string
   billedHours: string | null
   workSessions: WorkRow[]
@@ -120,6 +122,10 @@ export function RemittanceUploadDialog({ onClose, onSaved }: {
           documentDate: form.get('documentDate'),
           expectedPaymentDate: form.get('expectedPaymentDate'),
           paymentDate: form.get('paymentDate'),
+          bankedGrossAmount: form.get('bankedGrossAmount'),
+          cashDiscountRate: form.get('cashDiscountRate'),
+          cashDiscountDays: form.get('cashDiscountDays'),
+          reconciliationNote: form.get('reconciliationNote'),
           reference: form.get('reference'),
           description: form.get('description'),
           projectLabel: form.get('projectLabel'),
@@ -214,14 +220,23 @@ export function RemittanceUploadDialog({ onClose, onSaved }: {
                   <label className={LABEL}>Document date<input className={FIELD} name="documentDate" type="date" defaultValue={extraction.documentDate ?? ''} required /></label>
                   <label className={LABEL}>Expected payment <span className="font-normal text-slate-400">(not received)</span><input className={FIELD} name="expectedPaymentDate" type="date" defaultValue={extraction.expectedPaymentDate ?? ''} /></label>
                   <label className={LABEL}>Actual bank payment <span className="font-normal text-slate-400">(optional)</span><input className={FIELD} name="paymentDate" type="date" defaultValue={extraction.actualPaymentDate ?? ''} /></label>
+                  <label className={LABEL}>Amount received by bank <span className="font-normal text-slate-400">(required with payment)</span><input className={FIELD} name="bankedGrossAmount" inputMode="decimal" placeholder="Check the bank statement" /></label>
                   <label className={LABEL}>Project<input className={FIELD} name="projectLabel" defaultValue={extraction.projectLabel ?? ''} maxLength={160} /></label>
                   <label className={LABEL}>Description<input className={FIELD} name="description" defaultValue={extraction.description ?? ''} maxLength={500} /></label>
                 </div>
-                <p className="mt-3 text-xs leading-5 text-slate-500 dark:text-fmea-dim">The expected date is for planning only. VAT enters the reserve only when an actual bank payment date is recorded.</p>
+                <p className="mt-3 text-xs leading-5 text-slate-500 dark:text-fmea-dim">The expected date is for planning only. When payment arrives, check the bank statement and enter the amount actually received.</p>
                 <div className="mt-4 grid gap-4 sm:grid-cols-3">
-                  <label className={LABEL}>Net amount (€)<input className={FIELD} name="netAmount" defaultValue={extraction.netAmount ?? ''} inputMode="decimal" required /></label>
-                  <label className={LABEL}>VAT amount (€)<input className={FIELD} name="vatAmount" defaultValue={extraction.vatAmount ?? ''} inputMode="decimal" required /></label>
-                  <label className={LABEL}>Gross amount (€)<input className={FIELD} name="grossAmount" defaultValue={extraction.grossAmount ?? ''} inputMode="decimal" required /></label>
+                  <label className={LABEL}>Stated net (€)<input className={FIELD} name="netAmount" defaultValue={extraction.netAmount ?? ''} inputMode="decimal" required /></label>
+                  <label className={LABEL}>Stated VAT (€)<input className={FIELD} name="vatAmount" defaultValue={extraction.vatAmount ?? ''} inputMode="decimal" required /></label>
+                  <label className={LABEL}>Stated gross (€)<input className={FIELD} name="grossAmount" defaultValue={extraction.grossAmount ?? ''} inputMode="decimal" required /></label>
+                </div>
+                <div className="mt-4 rounded-2xl border border-violet-200 bg-violet-50/70 p-4 dark:border-violet-900/60 dark:bg-violet-950/20">
+                  <p className="text-xs font-semibold text-violet-900 dark:text-violet-200">Cash discount terms on the document</p>
+                  <div className="mt-3 grid gap-4 sm:grid-cols-2">
+                    <label className={LABEL}>Discount (%) <span className="font-normal text-slate-400">(optional)</span><input className={FIELD} name="cashDiscountRate" defaultValue={extraction.cashDiscountRate ?? ''} inputMode="decimal" placeholder="e.g. 1.5" /></label>
+                    <label className={LABEL}>Within days <span className="font-normal text-slate-400">(optional)</span><input className={FIELD} name="cashDiscountDays" type="number" min="1" max="365" defaultValue={extraction.cashDiscountDays ?? ''} placeholder="e.g. 14" /></label>
+                  </div>
+                  <label className={`${LABEL} mt-4`}>Reconciliation note <span className="font-normal text-slate-400">(optional)</span><textarea className={`${FIELD} min-h-20 resize-y`} name="reconciliationNote" maxLength={1000} placeholder="Only needed if the banked amount needs explanation." /></label>
                 </div>
               </section>
 

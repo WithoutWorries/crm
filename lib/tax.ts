@@ -4,6 +4,7 @@ import {
   VatFilingFrequency,
 } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
+import { reconcileRemittance } from '@/lib/remittance-reconciliation'
 import { decimalFromCents, getVatPeriod, type VatPeriod } from './tax-calculations'
 export {
   calculateInvoiceAmounts,
@@ -29,7 +30,15 @@ export async function rebuildCalculatedVat(userId: string): Promise<void> {
 
     const entries = await tx.taxCashEntry.findMany({
       where: { userId },
-      select: { type: true, vatAmount: true, paymentDate: true },
+      select: {
+        type: true,
+        netAmount: true,
+        vatAmount: true,
+        grossAmount: true,
+        paymentDate: true,
+        bankedGrossAmount: true,
+        cashDiscountRate: true,
+      },
     })
 
     const totals = new Map<string, { cents: number; period: VatPeriod }>()
@@ -42,9 +51,23 @@ export async function rebuildCalculatedVat(userId: string): Promise<void> {
       )
       if (!period) continue
       const direction = entry.type === TaxEntryType.EXPENSE_VAT ? -1 : 1
+      const vatCents = entry.type === TaxEntryType.CLIENT_REMITTANCE
+        ? reconcileRemittance({
+            paymentRecorded: true,
+            netCents: centsFromDecimal(entry.netAmount),
+            vatCents: centsFromDecimal(entry.vatAmount),
+            grossCents: centsFromDecimal(entry.grossAmount),
+            bankedGrossCents: entry.bankedGrossAmount === null
+              ? null
+              : centsFromDecimal(entry.bankedGrossAmount),
+            cashDiscountRate: entry.cashDiscountRate === null
+              ? null
+              : Number(entry.cashDiscountRate),
+          }).effectiveVatCents
+        : centsFromDecimal(entry.vatAmount)
       const existing = totals.get(period.key)
       totals.set(period.key, {
-        cents: (existing?.cents ?? 0) + direction * centsFromDecimal(entry.vatAmount),
+        cents: (existing?.cents ?? 0) + direction * vatCents,
         period,
       })
     }

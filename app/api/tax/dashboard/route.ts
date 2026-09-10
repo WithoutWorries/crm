@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireActiveSession } from '@/lib/session'
 import { centsFromDecimal, getVatPeriod, toDateOnly } from '@/lib/tax'
+import { reconcileRemittance } from '@/lib/remittance-reconciliation'
 
 const DAY_MS = 24 * 60 * 60 * 1000
 
@@ -152,22 +153,51 @@ export async function GET() {
     .filter((item) => daysFromToday(new Date(`${item.dueDate}T12:00:00.000Z`), today) <= 7)
     .sort((a, b) => a.dueDate.localeCompare(b.dueDate))
 
-  const recentEntries = entryRows.map((entry) => ({
-    id: entry.id,
-    type: entry.type,
-    description: entry.description,
-    reference: entry.reference,
-    netCents: centsFromDecimal(entry.netAmount),
-    vatCents: centsFromDecimal(entry.vatAmount),
-    grossCents: centsFromDecimal(entry.grossAmount),
-    vatRate: entry.vatRate,
-    documentDate: entry.documentDate ? toDateOnly(entry.documentDate) : null,
-    expectedPaymentDate: entry.expectedPaymentDate ? toDateOnly(entry.expectedPaymentDate) : null,
-    paymentDate: entry.paymentDate ? toDateOnly(entry.paymentDate) : null,
-    clientCalculated: entry.clientCalculated,
-    aiExtracted: entry.aiExtracted,
-    workSessionCount: entry._count.workSessions,
-  }))
+  const recentEntries = entryRows.map((entry) => {
+    const netCents = centsFromDecimal(entry.netAmount)
+    const vatCents = centsFromDecimal(entry.vatAmount)
+    const grossCents = centsFromDecimal(entry.grossAmount)
+    const reconciliation = entry.type === 'CLIENT_REMITTANCE'
+      ? reconcileRemittance({
+          paymentRecorded: Boolean(entry.paymentDate),
+          netCents,
+          vatCents,
+          grossCents,
+          bankedGrossCents: entry.bankedGrossAmount === null
+            ? null
+            : centsFromDecimal(entry.bankedGrossAmount),
+          cashDiscountRate: entry.cashDiscountRate === null
+            ? null
+            : Number(entry.cashDiscountRate),
+        })
+      : null
+    return {
+      id: entry.id,
+      type: entry.type,
+      description: entry.description,
+      reference: entry.reference,
+      netCents,
+      vatCents,
+      grossCents,
+      effectiveVatCents: reconciliation?.effectiveVatCents ?? vatCents,
+      effectiveGrossCents: reconciliation?.effectiveGrossCents ?? grossCents,
+      bankedGrossCents: reconciliation
+        ? reconciliation.bankedGrossCents
+        : (entry.paymentDate ? grossCents : null),
+      adjustmentCents: reconciliation?.adjustmentCents ?? 0,
+      reconciliationStatus: reconciliation?.status ?? 'MATCHED',
+      cashDiscountRate: entry.cashDiscountRate === null ? null : Number(entry.cashDiscountRate),
+      cashDiscountDays: entry.cashDiscountDays,
+      reconciliationNote: entry.reconciliationNote,
+      vatRate: entry.vatRate,
+      documentDate: entry.documentDate ? toDateOnly(entry.documentDate) : null,
+      expectedPaymentDate: entry.expectedPaymentDate ? toDateOnly(entry.expectedPaymentDate) : null,
+      paymentDate: entry.paymentDate ? toDateOnly(entry.paymentDate) : null,
+      clientCalculated: entry.clientCalculated,
+      aiExtracted: entry.aiExtracted,
+      workSessionCount: entry._count.workSessions,
+    }
+  })
 
   return NextResponse.json(
     {

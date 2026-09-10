@@ -27,6 +27,8 @@ Return ONLY one valid JSON object with exactly this shape:
   "vatAmount": number | null,
   "grossAmount": number | null,
   "vatRate": number | null,
+  "cashDiscountRate": number | null,
+  "cashDiscountDays": number | null,
   "currency": string,
   "billedHours": number | null,
   "workSessions": [
@@ -49,6 +51,7 @@ Rules:
 - expectedPaymentDate is a due, prospective, forecast, or payment-terms date.
 - actualPaymentDate must stay null unless the document explicitly proves that money was transferred or received on that date. A due date is never an actual payment date.
 - Preserve the document's stated net, VAT, gross, VAT rate and three-letter currency.
+- If payment terms offer a cash discount (Skonto), extract its percentage as cashDiscountRate and the qualifying number of days as cashDiscountDays. These fields describe the offer only; do not assume it was taken.
 - Extract each explicitly recorded work date and its hours from attached project reports or timesheets. Do not invent missing dates or distribute a total across dates.
 - billedHours is the stated invoiced quantity or timesheet total, where it is an hours quantity.
 - projectLabel should be a concise customer, project, contract, or work-package label useful in a private work record.

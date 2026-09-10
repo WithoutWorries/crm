@@ -689,6 +689,10 @@ model TaxCashEntry {
   documentDate        DateTime?
   expectedPaymentDate DateTime?
   paymentDate         DateTime?
+  bankedGrossAmount   Decimal?     @db.Decimal(14, 2)
+  cashDiscountRate    Decimal?     @db.Decimal(5, 2)
+  cashDiscountDays    Int?
+  reconciliationNote  String?
   clientCalculated    Boolean      @default(false)
   sourceFileName      String?
   sourceFileHash      String?
