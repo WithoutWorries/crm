@@ -1,6 +1,8 @@
 import type { LucideIcon } from 'lucide-react'
 import {
   ArrowRight,
+  BarChart3,
+  Calculator,
   Check,
   ChevronDown,
   Circle,
@@ -11,10 +13,12 @@ import {
   HardDriveDownload,
   Milestone,
   RefreshCw,
+  ReceiptText,
   Rocket,
   SearchCheck,
   ShieldCheck,
   Users,
+  Upload,
   Workflow,
 } from 'lucide-react'
 import {
@@ -22,6 +26,7 @@ import {
   ROADMAP_STAGES,
   ROADMAP_UPDATED_AT,
   STAGE_ZERO_REMAINING_TASKS,
+  TAX_HORIZON_IMPLEMENTATION_STEPS,
   type RoadmapStatus,
 } from '@/lib/development-roadmap'
 import { AccessBoundaryMap } from '@/components/development/access-boundary-map'
@@ -36,6 +41,8 @@ const STAGE_ICONS: LucideIcon[] = [
   RefreshCw,
   Users,
 ]
+
+const TAX_STEP_ICONS: LucideIcon[] = [ShieldCheck, BarChart3, Upload, ReceiptText, Calculator]
 
 const STATUS_STYLE: Record<
   RoadmapStatus,
@@ -193,6 +200,31 @@ export default function DevelopmentPage() {
       </section>
 
       <AccessBoundaryMap />
+
+      <section className="mb-10 rounded-3xl border border-violet-200 bg-gradient-to-br from-violet-50 via-white to-cyan-50/50 p-6 shadow-sm dark:border-violet-900/60 dark:from-violet-950/20 dark:via-fmea-bg2 dark:to-cyan-950/10 sm:p-8">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-violet-700 dark:text-violet-300">Tax Horizon implementation</p>
+            <h2 className="mt-1 text-lg font-semibold text-slate-950 dark:text-fmea-hi">2 of 5 steps complete</h2>
+            <p className="mt-1 text-xs leading-5 text-slate-500 dark:text-fmea-dim">Patreon import is the next controlled increment.</p>
+          </div>
+          <div className="flex gap-1.5" aria-label="Tax Horizon implementation progress">
+            {TAX_HORIZON_IMPLEMENTATION_STEPS.map((step) => <span key={step.number} title={`Step ${step.number}: ${step.title}`} className={`h-2 w-10 rounded-full ${step.status === 'COMPLETE' ? 'bg-emerald-500' : step.status === 'NEXT' ? 'bg-cyan-600 shadow-[0_0_0_4px_rgba(8,145,178,0.12)]' : 'bg-stone-200 dark:bg-fmea-border'}`} />)}
+          </div>
+        </div>
+
+        <ol className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+          {TAX_HORIZON_IMPLEMENTATION_STEPS.map((step, index) => {
+            const StepIcon = TAX_STEP_ICONS[index]
+            return <li key={step.number} className={`relative rounded-2xl border bg-white p-4 dark:bg-fmea-bg2 ${step.status === 'NEXT' ? 'border-cyan-400 ring-2 ring-cyan-100 dark:border-fmea-accent dark:ring-cyan-950/50' : step.status === 'COMPLETE' ? 'border-emerald-200 dark:border-emerald-900/60' : 'border-stone-200 dark:border-fmea-border'}`}>
+              <div className="flex items-start justify-between gap-3"><span className={`flex h-9 w-9 items-center justify-center rounded-xl ${step.status === 'COMPLETE' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300' : step.status === 'NEXT' ? 'bg-cyan-700 text-white dark:bg-fmea-accent dark:text-fmea-bg' : 'bg-stone-100 text-stone-400 dark:bg-fmea-bg3 dark:text-fmea-dim'}`}><StepIcon className="h-4 w-4" /></span><span className={`rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider ${step.status === 'COMPLETE' ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-300' : step.status === 'NEXT' ? 'bg-cyan-50 text-cyan-800 dark:bg-cyan-950/30 dark:text-cyan-300' : 'bg-stone-100 text-stone-500 dark:bg-fmea-bg3 dark:text-fmea-dim'}`}>{step.status === 'COMPLETE' ? 'Complete' : step.status === 'NEXT' ? 'Next' : 'Planned'}</span></div>
+              <p className="mt-4 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-fmea-dim">Step {step.number}</p>
+              <h3 className="mt-1 text-sm font-semibold text-slate-900 dark:text-fmea-hi">{step.title}</h3>
+              <p className="mt-2 text-xs leading-5 text-slate-500 dark:text-fmea-dim">{step.detail}</p>
+            </li>
+          })}
+        </ol>
+      </section>
 
       <section className="mb-10 rounded-3xl border border-amber-200 bg-amber-50/60 p-6 shadow-sm dark:border-amber-900/60 dark:bg-amber-950/15 sm:p-8">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">

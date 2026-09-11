@@ -21,7 +21,47 @@ export interface RemainingStageTask {
   next: boolean
 }
 
-export const ROADMAP_UPDATED_AT = '9 September 2026'
+export interface TaxHorizonStep {
+  number: number
+  title: string
+  status: 'COMPLETE' | 'NEXT' | 'PLANNED'
+  detail: string
+}
+
+export const ROADMAP_UPDATED_AT = '11 September 2026'
+
+export const TAX_HORIZON_IMPLEMENTATION_STEPS: TaxHorizonStep[] = [
+  {
+    number: 1,
+    title: 'Actual tax settlements',
+    status: 'COMPLETE',
+    detail: 'Payment dialog, advised and bank-paid amounts, full or partial settlement, evidence history and CSV export.',
+  },
+  {
+    number: 2,
+    title: 'Earnings and income history',
+    status: 'COMPLETE',
+    detail: 'Four current-year figures, source explanations and a 24-month consulting-income graph.',
+  },
+  {
+    number: 3,
+    title: 'Patreon import',
+    status: 'NEXT',
+    detail: 'Private CSV import with monthly earnings, platform fees, payment-processing fees and source-specific visuals.',
+  },
+  {
+    number: 4,
+    title: 'Complete expense recording',
+    status: 'PLANNED',
+    detail: 'Extend costs beyond VAT-bearing expenses while retaining payment evidence and clear categories.',
+  },
+  {
+    number: 5,
+    title: 'Income-tax forecast',
+    status: 'PLANNED',
+    detail: 'Cautious Einkommensteuer planning after prior-year figures, broader expenses and household assumptions are available.',
+  },
+]
 
 export const STAGE_ZERO_REMAINING_TASKS: RemainingStageTask[] = [
   {
