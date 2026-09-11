@@ -6,7 +6,7 @@ A private knowledge and reference system alongside an engineering consultancy CR
 
 - **Private Knowledge**: Frictionless long-form capture with optional type selection, recent notes, full-text search, editing, and recoverable deletion
 - **Offline Knowledge Capture**: Device-first drafts and an automatic, duplicate-safe sync queue
-- **Tax Horizon**: Private cash-basis VAT tracking, reviewed Claude extraction of remittance PDFs, a searchable and editable remittance archive, daily work records, annual work maps, tax notices, payment alerts, and a safe-to-spend reserve
+- **Tax Horizon**: Private cash-basis VAT tracking, reviewed Claude extraction of remittance PDFs, a searchable and editable remittance archive, daily work records, annual work maps, tax-payment evidence, recorded earnings trends, payment alerts, and a safe-to-spend reserve
 - **Dashboard**: Overview of open opportunities, pipeline value, overdue tasks, and recent activity
 - **Pipeline Management**: Kanban-style board to track opportunities through 8 stages
 - **Companies**: Manage client companies with industry, regulatory, and contact information
@@ -245,7 +245,9 @@ Routes require a signed session unless explicitly documented as a token- or secr
 - `POST /api/tax/remittance-extract` - Send one private PDF to Claude for reviewed remittance and daily-hours extraction
 - `GET /api/tax/work-sessions` - Private annual work-session calendar feed
 - `GET/POST /api/tax/liabilities` - Private notices, pre-payments and settlements
-- `PATCH/DELETE /api/tax/liabilities/[id]` - Update payment state or remove a private liability
+- `PATCH/DELETE /api/tax/liabilities/[id]` - Record payment evidence, reopen, update or remove a private liability
+- `GET /api/tax/payment-export` - Export a private year-based tax-payment reconciliation CSV
+- `DELETE /api/tax/payments/[id]` - Void a private tax-payment record and recalculate its liability
 - `GET/PATCH /api/tax/settings` - Private Tax Horizon balance and filing settings
 
 ## Notes

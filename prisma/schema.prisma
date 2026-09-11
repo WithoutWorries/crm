@@ -228,6 +228,13 @@ enum TaxLiabilityStatus {
   PAID
 }
 
+enum TaxPaymentSource {
+  ADVISER
+  TAX_NOTICE
+  ELSTER
+  MANUAL
+}
+
 enum VatFilingFrequency {
   UNKNOWN
   MONTHLY
@@ -263,6 +270,7 @@ model User {
   taxProfile           TaxProfile?
   taxCashEntries       TaxCashEntry[]
   taxLiabilities       TaxLiability[]
+  taxPayments          TaxPayment[]
   workSessions         WorkSession[]
   workspace            Workspace             @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
 
@@ -746,9 +754,36 @@ model TaxLiability {
   createdAt      DateTime           @default(now())
   updatedAt      DateTime           @updatedAt
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user     User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  payments TaxPayment[]
 
   @@unique([userId, calculationKey])
   @@index([userId, dueDate])
   @@index([userId, type, status])
+}
+
+model TaxPayment {
+  id                   String           @id @default(cuid())
+  userId               String
+  taxLiabilityId       String?
+  type                 TaxLiabilityType
+  periodKey            String?
+  periodLabel          String
+  calculatedAmount     Decimal          @db.Decimal(14, 2)
+  advisedAmount        Decimal          @db.Decimal(14, 2)
+  paidAmount           Decimal          @db.Decimal(14, 2)
+  paidAt               DateTime
+  source               TaxPaymentSource
+  settlesPeriod        Boolean          @default(true)
+  notes                String?
+  voidedAt             DateTime?
+  createdAt            DateTime         @default(now())
+  updatedAt            DateTime         @updatedAt
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  taxLiability TaxLiability? @relation(fields: [taxLiabilityId], references: [id], onDelete: SetNull)
+
+  @@index([userId, paidAt])
+  @@index([userId, type, periodKey])
+  @@index([taxLiabilityId])
 }

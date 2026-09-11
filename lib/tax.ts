@@ -85,18 +85,48 @@ export async function rebuildCalculatedVat(userId: string): Promise<void> {
       where: { userId, type: 'VAT', source: 'CALCULATED', status: 'PAID' },
       select: { periodKey: true, amount: true },
     })
-    const paidByPeriod = new Map<string, number>()
+    const paymentRows = await tx.taxPayment.findMany({
+      where: {
+        userId,
+        type: 'VAT',
+        voidedAt: null,
+        periodKey: { not: null },
+      },
+      select: { periodKey: true, paidAmount: true, settlesPeriod: true },
+    })
+
+    const settledPeriods = new Set<string>()
+    const partialPaidByPeriod = new Map<string, number>()
+    for (const payment of paymentRows) {
+      if (!payment.periodKey) continue
+      if (payment.settlesPeriod) {
+        settledPeriods.add(payment.periodKey)
+        continue
+      }
+      partialPaidByPeriod.set(
+        payment.periodKey,
+        (partialPaidByPeriod.get(payment.periodKey) ?? 0) + centsFromDecimal(payment.paidAmount)
+      )
+    }
+
+    // Compatibility for liabilities marked paid before payment evidence existed.
+    const legacyPaidByPeriod = new Map<string, number>()
     for (const paid of paidRows) {
       if (!paid.periodKey) continue
-      paidByPeriod.set(
+      legacyPaidByPeriod.set(
         paid.periodKey,
-        (paidByPeriod.get(paid.periodKey) ?? 0) + centsFromDecimal(paid.amount)
+        (legacyPaidByPeriod.get(paid.periodKey) ?? 0) + centsFromDecimal(paid.amount)
       )
     }
 
     const liabilities = [...totals.values()]
       .map(({ cents, period }) => {
-        const paidCents = paidByPeriod.get(period.key) ?? 0
+        // A final payment closes the period even when the advised amount differs
+        // from the app's planning calculation. The variance remains visible in
+        // TaxPayment rather than becoming a misleading residual liability.
+        if (settledPeriods.has(period.key)) return null
+        const paidCents = (legacyPaidByPeriod.get(period.key) ?? 0)
+          + (partialPaidByPeriod.get(period.key) ?? 0)
         const outstandingCents = cents - paidCents
         if (outstandingCents === 0) return null
         return {

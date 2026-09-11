@@ -10,6 +10,7 @@ import {
   Check,
   ChevronRight,
   CircleDollarSign,
+  Download,
   FileCheck2,
   FileUp,
   Landmark,
@@ -24,6 +25,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { RemittanceUploadDialog } from '@/components/tax/remittance-upload-dialog'
+import { IncomeHistoryChart } from '@/components/tax/income-history-chart'
 import { TaxHorizonChart } from '@/components/tax/tax-horizon-chart'
 import { WorkYearSection } from '@/components/tax/work-year-section'
 import { reconcileRemittance } from '@/lib/remittance-reconciliation'
@@ -46,6 +48,7 @@ interface Liability {
   taxYear: number | null
   periodKey: string | null
   notes: string | null
+  hasPaymentEvidence: boolean
 }
 
 export interface TaxDashboardData {
@@ -83,6 +86,37 @@ export interface TaxDashboardData {
     projectionLabel: string | null
   }>
   liabilities: Liability[]
+  earnings: {
+    year: number
+    revenueExVatCents: number
+    grossCashReceivedCents: number
+    businessCostsCents: number
+    recordedResultCents: number
+    unconfirmedCashCount: number
+    months: Array<{
+      key: string
+      label: string
+      isCurrent: boolean
+      revenueExVatCents: number
+      grossCashReceivedCents: number
+      businessCostsCents: number
+      recordedResultCents: number
+    }>
+  }
+  taxPayments: Array<{
+    id: string
+    taxLiabilityId: string | null
+    type: LiabilityType
+    periodKey: string | null
+    periodLabel: string
+    calculatedCents: number
+    advisedCents: number
+    paidCents: number
+    paidAt: string
+    source: 'ADVISER' | 'TAX_NOTICE' | 'ELSTER' | 'MANUAL'
+    settlesPeriod: boolean
+    notes: string | null
+  }>
   recentEntries: Array<{
     id: string
     type: 'ISSUED_INVOICE' | 'CLIENT_REMITTANCE' | 'EXPENSE_VAT'
@@ -110,7 +144,7 @@ export interface TaxDashboardData {
   calculationNote: string
 }
 
-type Dialog = 'income' | 'remittance' | 'remittance-upload' | 'expense' | 'liability' | 'settings' | 'payment' | 'reference' | null
+type Dialog = 'income' | 'remittance' | 'remittance-upload' | 'expense' | 'liability' | 'settings' | 'payment' | 'tax-payment' | 'reference' | null
 type LiabilityTab = 'current' | 'upcoming' | 'prior'
 
 const FIELD =
@@ -223,7 +257,9 @@ export function TaxHorizon({ initialData }: { initialData?: TaxDashboardData }) 
   const [savingId, setSavingId] = useState<string | null>(null)
   const [removingEntryId, setRemovingEntryId] = useState<string | null>(null)
   const [removingLiabilityId, setRemovingLiabilityId] = useState<string | null>(null)
+  const [voidingPaymentId, setVoidingPaymentId] = useState<string | null>(null)
   const [selectedRemittanceId, setSelectedRemittanceId] = useState<string | null>(null)
+  const [selectedLiabilityId, setSelectedLiabilityId] = useState<string | null>(null)
 
   const load = async () => {
     try {
@@ -252,19 +288,21 @@ export function TaxHorizon({ initialData }: { initialData?: TaxDashboardData }) 
     return data.liabilities.filter((item) => item.type !== 'PRIOR_YEAR_SETTLEMENT' && (item.dueDate <= cutoff || item.status === 'PAID'))
   }, [data, tab])
 
-  const markPaid = async (liability: Liability) => {
-    setSavingId(liability.id)
+  const openTaxPayment = (liability: Liability) => {
+    setSelectedLiabilityId(liability.id)
+    setDialog('tax-payment')
+  }
+
+  const voidTaxPayment = async (paymentId: string) => {
+    if (!window.confirm('Void this payment record? The liability will be recalculated and the original evidence will remain in the audit log.')) return
+    setVoidingPaymentId(paymentId)
     try {
-      await jsonRequest(`/api/tax/liabilities/${liability.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'markPaid', paidAt: todayInput() }),
-      })
+      await jsonRequest(`/api/tax/payments/${paymentId}`, { method: 'DELETE' })
       await load()
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : 'Unable to mark the liability as paid')
+      setError(caught instanceof Error ? caught.message : 'Unable to void the tax payment')
     } finally {
-      setSavingId(null)
+      setVoidingPaymentId(null)
     }
   }
 
@@ -316,8 +354,8 @@ export function TaxHorizon({ initialData }: { initialData?: TaxDashboardData }) 
               <p className="mt-0.5 text-sm text-rose-50">{money(firstUrgent.amountCents, currency)} · due {dateLabel(firstUrgent.dueDate)}</p>
             </div>
           </div>
-          <button type="button" onClick={() => void markPaid(firstUrgent)} disabled={savingId === firstUrgent.id} className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-white px-4 py-2 text-sm font-semibold text-rose-700 transition hover:bg-rose-50 disabled:opacity-60">
-            {savingId === firstUrgent.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />} Mark as paid
+          <button type="button" onClick={() => openTaxPayment(firstUrgent)} className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-white px-4 py-2 text-sm font-semibold text-rose-700 transition hover:bg-rose-50">
+            <Check className="h-4 w-4" /> Record payment
           </button>
         </section>
       )}
@@ -342,7 +380,25 @@ export function TaxHorizon({ initialData }: { initialData?: TaxDashboardData }) 
         <MetricCard icon={CircleDollarSign} label="Safe to spend" value={money(data.metrics.safeToSpendCents, currency)} detail="Bank balance less the current reserve" tone={data.metrics.safeToSpendCents < 0 ? 'rose' : 'cyan'} hero />
       </section>
 
+      <section className="rounded-3xl border border-stone-200 bg-white p-5 shadow-sm dark:border-fmea-border dark:bg-fmea-bg2 sm:p-6">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-cyan-700 dark:text-fmea-accent">Recorded earnings {data.earnings.year}</p>
+            <h2 className="mt-1 text-lg font-semibold text-slate-950 dark:text-fmea-hi">What the current records show</h2>
+          </div>
+          <p className="max-w-xl text-xs leading-5 text-slate-400 dark:text-fmea-dim">Payment-date view. Figures are only as complete as the income and business costs recorded here.</p>
+        </div>
+        <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <EarningsMetric label="Net revenue" value={money(data.earnings.revenueExVatCents, currency)} detail="Income excluding VAT" tone="cyan" />
+          <EarningsMetric label="Gross cash received" value={money(data.earnings.grossCashReceivedCents, currency)} detail={data.earnings.unconfirmedCashCount ? `${data.earnings.unconfirmedCashCount} bank amount${data.earnings.unconfirmedCashCount === 1 ? '' : 's'} not yet counted` : 'Bank receipts including VAT'} tone="blue" />
+          <EarningsMetric label="Business costs" value={money(data.earnings.businessCostsCents, currency)} detail="Recorded costs excluding VAT" tone="amber" />
+          <EarningsMetric label="Recorded result" value={money(data.earnings.recordedResultCents, currency)} detail="Net revenue less recorded costs" tone={data.earnings.recordedResultCents < 0 ? 'rose' : 'violet'} />
+        </div>
+      </section>
+
       <TaxHorizonChart timeline={data.timeline} currency={currency} />
+
+      <IncomeHistoryChart months={data.earnings.months} currency={currency} />
 
       <WorkYearSection reportingStartYear={data.profile.reportingStartYear} refreshKey={data.recentEntries.map((entry) => entry.id).join(':') || 'none'} />
 
@@ -359,7 +415,7 @@ export function TaxHorizon({ initialData }: { initialData?: TaxDashboardData }) 
               const status = STATUS_STYLE[liability.displayStatus]
               return <article key={liability.id} className="flex flex-col gap-4 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
                 <div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><h3 className="truncate text-sm font-semibold text-slate-900 dark:text-fmea-hi">{liability.label}</h3><span className={cn('rounded-full border px-2 py-0.5 text-[10px] font-semibold', status.className)}>{status.label}</span></div><p className="mt-1 text-xs text-slate-500 dark:text-fmea-dim">{LIABILITY_LABELS[liability.type]} · due {dateLabel(liability.dueDate)} · {liability.source === 'CALCULATED' ? 'calculated from cash entries' : liability.source === 'TAX_NOTICE' ? 'tax notice' : liability.source.toLowerCase()}</p></div>
-                <div className="flex shrink-0 items-center justify-between gap-3 sm:justify-end"><p className="text-base font-semibold tabular-nums text-slate-950 dark:text-fmea-hi">{money(liability.amountCents, currency)}</p>{liability.status !== 'PAID' ? <button type="button" onClick={() => void markPaid(liability)} disabled={savingId === liability.id} className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-100 disabled:opacity-60 dark:border-emerald-900/70 dark:bg-emerald-950/30 dark:text-emerald-300">{savingId === liability.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />} Mark paid</button> : <button type="button" onClick={async () => { setSavingId(liability.id); try { await jsonRequest(`/api/tax/liabilities/${liability.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'reopen' }) }); await load() } catch (caught) { setError(caught instanceof Error ? caught.message : 'Unable to reopen') } finally { setSavingId(null) } }} className="text-xs font-semibold text-slate-400 hover:text-slate-700 dark:text-fmea-dim">Reopen</button>}{liability.source !== 'CALCULATED' && <button type="button" onClick={() => void removeLiability(liability)} disabled={removingLiabilityId === liability.id} className="rounded-lg p-1.5 text-stone-300 hover:bg-rose-50 hover:text-rose-600 disabled:opacity-50 dark:text-fmea-border dark:hover:bg-rose-950/30 dark:hover:text-rose-300" title="Remove liability" aria-label="Remove liability">{removingLiabilityId === liability.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}</button>}</div>
+                <div className="flex shrink-0 items-center justify-between gap-3 sm:justify-end"><p className="text-base font-semibold tabular-nums text-slate-950 dark:text-fmea-hi">{money(liability.amountCents, currency)}</p>{liability.status !== 'PAID' ? <button type="button" onClick={() => openTaxPayment(liability)} className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-100 dark:border-emerald-900/70 dark:bg-emerald-950/30 dark:text-emerald-300"><Check className="h-3.5 w-3.5" /> Record payment</button> : liability.hasPaymentEvidence ? <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-300">Payment recorded</span> : <button type="button" disabled={savingId === liability.id} onClick={async () => { setSavingId(liability.id); try { await jsonRequest(`/api/tax/liabilities/${liability.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'reopen' }) }); await load() } catch (caught) { setError(caught instanceof Error ? caught.message : 'Unable to reopen') } finally { setSavingId(null) } }} className="text-xs font-semibold text-slate-400 hover:text-slate-700 disabled:opacity-50 dark:text-fmea-dim">{savingId === liability.id ? 'Reopening…' : 'Reopen'}</button>}{liability.source !== 'CALCULATED' && !liability.hasPaymentEvidence && <button type="button" onClick={() => void removeLiability(liability)} disabled={removingLiabilityId === liability.id} className="rounded-lg p-1.5 text-stone-300 hover:bg-rose-50 hover:text-rose-600 disabled:opacity-50 dark:text-fmea-border dark:hover:bg-rose-950/30 dark:hover:text-rose-300" title="Remove liability" aria-label="Remove liability">{removingLiabilityId === liability.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}</button>}</div>
               </article>
             }) : <div className="px-6 py-14 text-center"><CalendarClock className="mx-auto h-8 w-8 text-stone-300 dark:text-fmea-border" /><p className="mt-3 text-sm font-semibold text-slate-700 dark:text-fmea-text">Nothing in this view</p><p className="mt-1 text-xs text-slate-400 dark:text-fmea-dim">New obligations will appear here as cash and notices are recorded.</p></div>}
           </div>
@@ -377,6 +433,42 @@ export function TaxHorizon({ initialData }: { initialData?: TaxDashboardData }) 
           <div className="mt-6 border-t border-slate-700 pt-5"><div className="flex items-start gap-2 text-xs leading-5 text-slate-400"><ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-cyan-300" /><p>{data.calculationNote}</p></div></div>
         </aside>
       </section>
+
+      {data.taxPayments.length > 0 && (
+        <section className="rounded-3xl border border-stone-200 bg-white p-5 shadow-sm dark:border-fmea-border dark:bg-fmea-bg2 sm:p-6">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-emerald-700 dark:text-emerald-300">Payment evidence</p>
+              <h2 className="mt-1 text-lg font-semibold text-slate-950 dark:text-fmea-hi">Tax payments recorded</h2>
+              <p className="mt-1 text-xs leading-5 text-slate-400 dark:text-fmea-dim">Calculated, advised and bank-paid amounts remain separate so a difference can be explained later.</p>
+            </div>
+            <a href={`/api/tax/payment-export?year=${data.earnings.year}`} className="inline-flex min-h-10 shrink-0 items-center justify-center gap-2 self-start rounded-xl border border-emerald-200 bg-emerald-50 px-3.5 py-2 text-xs font-semibold text-emerald-800 hover:bg-emerald-100 dark:border-emerald-900/70 dark:bg-emerald-950/30 dark:text-emerald-300"><Download className="h-4 w-4" />{data.earnings.year} payments CSV</a>
+          </div>
+          <div className="mt-4 divide-y divide-stone-100 dark:divide-fmea-border">
+            {data.taxPayments.map((payment) => {
+              const calculationVariance = payment.advisedCents - payment.calculatedCents
+              const bankVariance = payment.paidCents - payment.advisedCents
+              return (
+                <article key={payment.id} className="flex flex-col gap-3 py-4 first:pt-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h3 className="text-sm font-semibold text-slate-900 dark:text-fmea-hi">{payment.periodLabel}</h3>
+                      <span className={cn('rounded-full border px-2 py-0.5 text-[10px] font-semibold', payment.settlesPeriod ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/70 dark:bg-emerald-950/30 dark:text-emerald-300' : 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900/70 dark:bg-amber-950/30 dark:text-amber-300')}>{payment.settlesPeriod ? 'Period settled' : 'Partial payment'}</span>
+                    </div>
+                    <p className="mt-1 text-xs text-slate-500 dark:text-fmea-dim">Paid {dateLabel(payment.paidAt)} · {payment.source === 'ADVISER' ? 'accountant advice' : payment.source === 'TAX_NOTICE' ? 'tax notice' : payment.source === 'ELSTER' ? 'ELSTER filing' : 'manual record'}</p>
+                    {(calculationVariance !== 0 || bankVariance !== 0) && <p className="mt-1 text-xs font-medium text-violet-700 dark:text-violet-300">App {money(payment.calculatedCents, currency)} · advised {money(payment.advisedCents, currency)}{bankVariance !== 0 ? ` · bank difference ${money(bankVariance, currency)}` : ''}</p>}
+                    {payment.notes && <p className="mt-1 text-xs text-slate-400 dark:text-fmea-dim">{payment.notes}</p>}
+                  </div>
+                  <div className="flex shrink-0 items-center justify-between gap-3 sm:justify-end">
+                    <p className="text-base font-semibold tabular-nums text-slate-950 dark:text-fmea-hi">{money(payment.paidCents, currency)}</p>
+                    <button type="button" onClick={() => void voidTaxPayment(payment.id)} disabled={voidingPaymentId === payment.id} className="rounded-lg px-2 py-1.5 text-[10px] font-semibold text-slate-400 hover:bg-rose-50 hover:text-rose-600 disabled:opacity-50 dark:text-fmea-dim dark:hover:bg-rose-950/30 dark:hover:text-rose-300">{voidingPaymentId === payment.id ? 'Voiding…' : 'Void'}</button>
+                  </div>
+                </article>
+              )
+            })}
+          </div>
+        </section>
+      )}
 
       {data.recentEntries.length > 0 && (
         <section className="rounded-3xl border border-stone-200 bg-white p-5 shadow-sm dark:border-fmea-border dark:bg-fmea-bg2 sm:p-6">
@@ -440,6 +532,7 @@ export function TaxHorizon({ initialData }: { initialData?: TaxDashboardData }) 
       {dialog === 'remittance-upload' && <RemittanceUploadDialog onClose={() => setDialog(null)} onSaved={async () => { setDialog(null); await load() }} />}
       {dialog === 'liability' && <LiabilityDialog onClose={() => setDialog(null)} onSaved={async () => { setDialog(null); await load() }} />}
       {dialog === 'settings' && <SettingsDialog profile={data.profile} onClose={() => setDialog(null)} onSaved={async () => { setDialog(null); await load() }} />}
+      {dialog === 'tax-payment' && selectedLiabilityId && <TaxPaymentDialog liability={data.liabilities.find((liability) => liability.id === selectedLiabilityId)!} currency={currency} onClose={() => { setDialog(null); setSelectedLiabilityId(null) }} onSaved={async () => { setDialog(null); setSelectedLiabilityId(null); await load() }} />}
       {dialog === 'payment' && selectedRemittanceId && <PaymentDialog entry={data.recentEntries.find((entry) => entry.id === selectedRemittanceId)!} onClose={() => { setDialog(null); setSelectedRemittanceId(null) }} onSaved={async () => { setDialog(null); setSelectedRemittanceId(null); await load() }} />}
       {dialog === 'reference' && selectedRemittanceId && <ReferenceDialog entryId={selectedRemittanceId} initialReference={data.recentEntries.find((entry) => entry.id === selectedRemittanceId)?.reference ?? ''} onClose={() => { setDialog(null); setSelectedRemittanceId(null) }} onSaved={async () => { setDialog(null); setSelectedRemittanceId(null); await load() }} />}
     </div>
@@ -450,6 +543,17 @@ function MetricCard({ icon: Icon, label, value, detail, tone, hero = false, acti
   const styles = { slate: 'border-stone-200 bg-white dark:border-fmea-border dark:bg-fmea-bg2', amber: 'border-amber-200 bg-amber-50/70 dark:border-amber-900/60 dark:bg-amber-950/20', cyan: 'border-cyan-300 bg-cyan-800 text-white shadow-lg shadow-cyan-900/10 dark:border-fmea-accent dark:bg-fmea-accent dark:text-fmea-bg', rose: 'border-rose-300 bg-rose-700 text-white dark:border-rose-800 dark:bg-rose-950' }[tone]
   const inverted = tone === 'cyan' || tone === 'rose'
   return <div className={cn('rounded-3xl border p-5 sm:p-6', styles, hero && 'md:-translate-y-1')}><div className="flex items-start justify-between"><div className={cn('flex h-10 w-10 items-center justify-center rounded-xl', inverted ? 'bg-white/15' : tone === 'amber' ? 'bg-amber-100 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300' : 'bg-slate-100 text-slate-600 dark:bg-fmea-bg3 dark:text-fmea-dim')}><Icon className="h-5 w-5" /></div>{action}</div><p className={cn('mt-5 text-xs font-semibold uppercase tracking-[0.12em]', inverted ? 'text-white/75' : 'text-slate-400 dark:text-fmea-dim')}>{label}</p><p className={cn('mt-1 font-semibold tracking-tight tabular-nums', hero ? 'text-4xl' : 'text-3xl', inverted ? '' : 'text-slate-950 dark:text-fmea-hi')}>{value}</p><p className={cn('mt-2 text-xs', inverted ? 'text-white/70' : 'text-slate-500 dark:text-fmea-dim')}>{detail}</p></div>
+}
+
+function EarningsMetric({ label, value, detail, tone }: { label: string; value: string; detail: string; tone: 'cyan' | 'blue' | 'amber' | 'violet' | 'rose' }) {
+  const styles = {
+    cyan: 'border-cyan-200 bg-cyan-50 text-cyan-950 dark:border-cyan-800 dark:bg-cyan-950/35 dark:text-cyan-100',
+    blue: 'border-blue-200 bg-blue-50 text-blue-950 dark:border-blue-800 dark:bg-blue-950/35 dark:text-blue-100',
+    amber: 'border-amber-200 bg-amber-50 text-amber-950 dark:border-amber-800 dark:bg-amber-950/35 dark:text-amber-100',
+    violet: 'border-violet-200 bg-violet-50 text-violet-950 dark:border-violet-800 dark:bg-violet-950/35 dark:text-violet-100',
+    rose: 'border-rose-200 bg-rose-50 text-rose-950 dark:border-rose-800 dark:bg-rose-950/35 dark:text-rose-100',
+  }[tone]
+  return <div className={cn('rounded-2xl border p-4', styles)}><p className="text-[10px] font-bold uppercase tracking-[0.12em] opacity-65">{label}</p><p className="mt-1 text-2xl font-semibold tracking-tight tabular-nums">{value}</p><p className="mt-1 text-[11px] opacity-65">{detail}</p></div>
 }
 
 function QuickAction({ icon: Icon, label, detail, onClick }: { icon: typeof ArrowDownToLine; label: string; detail: string; onClick: () => void }) {
@@ -536,6 +640,92 @@ function EntryDialog({ mode, onClose, onSaved }: { mode: 'income' | 'remittance'
       </form>
     </Modal>
   )
+}
+
+function TaxPaymentDialog({ liability, currency, onClose, onSaved }: { liability: Liability; currency: string; onClose: () => void; onSaved: () => Promise<void> }) {
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+  const [advised, setAdvised] = useState((liability.amountCents / 100).toFixed(2))
+  const [paid, setPaid] = useState('')
+  const [settlesPeriod, setSettlesPeriod] = useState(true)
+  const advisedCents = Math.round(Number(advised.replace(',', '.')) * 100)
+  const paidCents = Math.round(Number(paid.replace(',', '.')) * 100)
+  const adviceVariance = Number.isFinite(advisedCents) ? advisedCents - liability.amountCents : 0
+  const bankVariance = Number.isFinite(paidCents) && paidCents > 0 && Number.isFinite(advisedCents)
+    ? paidCents - advisedCents
+    : null
+
+  const submit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault(); setSaving(true); setError('')
+    const form = new FormData(event.currentTarget)
+    try {
+      await jsonRequest(`/api/tax/liabilities/${liability.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'markPaid',
+          paidAt: form.get('paidAt'),
+          periodKey: liability.periodKey,
+          periodLabel: form.get('periodLabel'),
+          advisedAmount: advised,
+          paidAmount: paid,
+          paymentSource: form.get('paymentSource'),
+          settlesPeriod,
+          notes: form.get('notes'),
+        }),
+      })
+      await onSaved()
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : 'Unable to record the tax payment')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <Modal title="Record tax payment" description="Keep the app calculation, accountant advice and bank payment as separate evidence." onClose={onClose}>
+      <form onSubmit={submit} className="space-y-5">
+        <div className="grid grid-cols-3 gap-2">
+          <PaymentFigure label="App calculation" value={money(liability.amountCents, currency)} tone="cyan" />
+          <PaymentFigure label="Advised / filed" value={Number.isFinite(advisedCents) ? money(advisedCents, currency) : '—'} tone="violet" />
+          <PaymentFigure label="Paid by bank" value={Number.isFinite(paidCents) && paidCents > 0 ? money(paidCents, currency) : '—'} tone="emerald" />
+        </div>
+
+        <label className={LABEL}>Tax period or payment description<input className={FIELD} name="periodLabel" defaultValue={liability.label} maxLength={160} required /></label>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <label className={LABEL}>Amount advised or filed (€)<input className={FIELD} value={advised} onChange={(event) => setAdvised(event.target.value)} inputMode="decimal" required /></label>
+          <label className={LABEL}>Amount paid from bank (€)<input className={FIELD} value={paid} onChange={(event) => setPaid(event.target.value)} inputMode="decimal" placeholder="Check the bank statement" autoFocus required /></label>
+          <label className={LABEL}>Payment date<input className={FIELD} name="paidAt" type="date" defaultValue={todayInput()} required /></label>
+          <label className={LABEL}>Evidence source<select className={FIELD} name="paymentSource" defaultValue={liability.source === 'TAX_NOTICE' ? 'TAX_NOTICE' : 'ADVISER'}><option value="ADVISER">Accountant advice</option><option value="TAX_NOTICE">Tax notice</option><option value="ELSTER">ELSTER filing</option><option value="MANUAL">My own record</option></select></label>
+        </div>
+
+        {(adviceVariance !== 0 || bankVariance !== null && bankVariance !== 0) && (
+          <div className="rounded-2xl border border-violet-200 bg-violet-50 p-4 text-xs leading-5 text-violet-900 dark:border-violet-900/60 dark:bg-violet-950/25 dark:text-violet-200">
+            <p className="font-semibold">Variance recorded, not hidden</p>
+            <p className="mt-1">Advice against app calculation: {money(adviceVariance, currency)}{bankVariance !== null ? ` · bank against advice: ${money(bankVariance, currency)}` : ''}</p>
+          </div>
+        )}
+
+        <label className="flex items-start gap-3 rounded-2xl border border-stone-200 bg-stone-50 p-4 dark:border-fmea-border dark:bg-fmea-bg3">
+          <input className="mt-0.5 h-4 w-4 rounded border-stone-300 text-emerald-700 focus:ring-emerald-600" type="checkbox" checked={settlesPeriod} onChange={(event) => setSettlesPeriod(event.target.checked)} />
+          <span><span className="block text-sm font-semibold text-slate-800 dark:text-fmea-text">This is the final payment for the period</span><span className="mt-1 block text-xs leading-5 text-slate-500 dark:text-fmea-dim">Untick for a partial payment. The remaining calculated VAT will stay in the reserve.</span></span>
+        </label>
+
+        <label className={LABEL}>Accountant or reconciliation note <span className="font-normal text-slate-400">(optional)</span><textarea className={cn(FIELD, 'min-h-20 resize-y')} name="notes" maxLength={2000} placeholder="Enough detail to explain this payment later." /></label>
+        {error && <p className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</p>}
+        <div className="flex justify-end"><SubmitButton saving={saving}>Record payment</SubmitButton></div>
+      </form>
+    </Modal>
+  )
+}
+
+function PaymentFigure({ label, value, tone }: { label: string; value: string; tone: 'cyan' | 'violet' | 'emerald' }) {
+  const styles = {
+    cyan: 'border-cyan-200 bg-cyan-50 text-cyan-900 dark:border-cyan-900/60 dark:bg-cyan-950/25 dark:text-cyan-200',
+    violet: 'border-violet-200 bg-violet-50 text-violet-900 dark:border-violet-900/60 dark:bg-violet-950/25 dark:text-violet-200',
+    emerald: 'border-emerald-200 bg-emerald-50 text-emerald-900 dark:border-emerald-900/60 dark:bg-emerald-950/25 dark:text-emerald-200',
+  }[tone]
+  return <div className={cn('min-w-0 rounded-xl border p-3', styles)}><p className="truncate text-[9px] font-bold uppercase tracking-wide opacity-65">{label}</p><p className="mt-1 truncate text-sm font-semibold tabular-nums">{value}</p></div>
 }
 
 function PaymentDialog({ entry, onClose, onSaved }: { entry: TaxDashboardData['recentEntries'][number]; onClose: () => void; onSaved: () => Promise<void> }) {

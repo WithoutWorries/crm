@@ -10,6 +10,7 @@ import {
 } from '../lib/tax-calculations'
 import { csvCell } from '../lib/csv'
 import { reconcileRemittance } from '../lib/remittance-reconciliation'
+import { summarizeTaxEarnings } from '../lib/tax-earnings'
 
 assert.equal(parseMoneyToCents('1234.56'), 123456)
 assert.equal(parseMoneyToCents('1234,5'), 123450)
@@ -74,5 +75,51 @@ assert.equal(getVatPeriod(new Date(), 'UNKNOWN', false), null)
 
 assert.equal(parseDateOnly('2026-02-29'), null)
 assert.equal(parseDateOnly('2024-02-29')?.toISOString().slice(0, 10), '2024-02-29')
+
+const earnings = summarizeTaxEarnings([
+  {
+    type: 'CLIENT_REMITTANCE',
+    paymentDate: new Date('2026-08-05T12:00:00.000Z'),
+    netCents: 1_470_735,
+    vatCents: 279_440,
+    grossCents: 1_750_175,
+    bankedGrossCents: 1_723_922,
+    cashDiscountRate: 1.5,
+  },
+  {
+    type: 'EXPENSE_VAT',
+    paymentDate: new Date('2026-08-08T12:00:00.000Z'),
+    netCents: 100_000,
+    vatCents: 19_000,
+    grossCents: 119_000,
+    bankedGrossCents: null,
+    cashDiscountRate: null,
+  },
+  {
+    type: 'CLIENT_REMITTANCE',
+    paymentDate: new Date('2026-09-01T12:00:00.000Z'),
+    netCents: 200_000,
+    vatCents: 38_000,
+    grossCents: 238_000,
+    bankedGrossCents: null,
+    cashDiscountRate: null,
+  },
+], new Date('2026-09-11T12:00:00.000Z'))
+
+assert.equal(earnings.revenueExVatCents, 1_648_674)
+assert.equal(earnings.grossCashReceivedCents, 1_723_922)
+assert.equal(earnings.businessCostsCents, 100_000)
+assert.equal(earnings.recordedResultCents, 1_548_674)
+assert.equal(earnings.unconfirmedCashCount, 1)
+assert.equal(earnings.months.length, 24)
+assert.deepEqual(earnings.months.at(-2), {
+  key: '2026-08',
+  label: 'Aug 26',
+  isCurrent: false,
+  revenueExVatCents: 1_448_674,
+  grossCashReceivedCents: 1_723_922,
+  businessCostsCents: 100_000,
+  recordedResultCents: 1_348_674,
+})
 
 console.log('Tax calculation tests passed')

@@ -155,6 +155,13 @@ export const ROADMAP_STAGES: RoadmapStage[] = [
 
 export const PROGRESS_ENTRIES: ProgressEntry[] = [
   {
+    date: '11 September 2026',
+    title: 'Tax payment evidence and earnings trend implemented',
+    detail:
+      'Tax payments now keep the app calculation, accountant-advised amount and actual bank payment separate, including full or partial settlement and a reversible audit trail. The dashboard adds current-year recorded earnings and a vivid 24-month income, cost and result chart.',
+    stage: null,
+  },
+  {
     date: '10 September 2026',
     title: 'Bank receipt reconciliation and accountant export added',
     detail:

@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { requireActiveSession } from '@/lib/session'
 import { centsFromDecimal, getVatPeriod, toDateOnly } from '@/lib/tax'
 import { reconcileRemittance } from '@/lib/remittance-reconciliation'
+import { summarizeTaxEarnings } from '@/lib/tax-earnings'
 
 const DAY_MS = 24 * 60 * 60 * 1000
 
@@ -41,7 +42,11 @@ export async function GET() {
     create: { userId: session.userId },
   })
 
-  const [liabilityRows, entryRows] = await Promise.all([
+  const now = new Date()
+  const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 12))
+  const earningsStart = addUtcMonths(startOfUtcMonth(today), -23)
+
+  const [liabilityRows, entryRows, earningsRows, paymentRows] = await Promise.all([
     prisma.taxLiability.findMany({
       where: { userId: session.userId },
       orderBy: [{ dueDate: 'asc' }, { createdAt: 'asc' }],
@@ -52,13 +57,31 @@ export async function GET() {
       take: 20,
       include: { _count: { select: { workSessions: true } } },
     }),
+    prisma.taxCashEntry.findMany({
+      where: {
+        userId: session.userId,
+        paymentDate: { gte: earningsStart, lte: today },
+      },
+      select: {
+        type: true,
+        paymentDate: true,
+        netAmount: true,
+        vatAmount: true,
+        grossAmount: true,
+        bankedGrossAmount: true,
+        cashDiscountRate: true,
+      },
+    }),
+    prisma.taxPayment.findMany({
+      where: { userId: session.userId, voidedAt: null },
+      orderBy: [{ paidAt: 'desc' }, { createdAt: 'desc' }],
+    }),
   ])
 
-  const now = new Date()
-  const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 12))
   const timelineStart = addUtcMonths(startOfUtcMonth(today), -3)
   const timelineEnd = addUtcMonths(timelineStart, 12)
 
+  const paymentLiabilityIds = new Set(paymentRows.map((payment) => payment.taxLiabilityId).filter(Boolean))
   const serializedLiabilities = liabilityRows.map((liability) => ({
     id: liability.id,
     label: liability.label,
@@ -73,6 +96,7 @@ export async function GET() {
     taxYear: liability.taxYear,
     periodKey: liability.periodKey,
     notes: liability.notes,
+    hasPaymentEvidence: paymentLiabilityIds.has(liability.id),
   }))
 
   const unpaid = serializedLiabilities.filter((item) => item.status !== 'PAID' && item.amountCents > 0)
@@ -199,6 +223,38 @@ export async function GET() {
     }
   })
 
+  const earnings = summarizeTaxEarnings(
+    earningsRows.map((entry) => ({
+      type: entry.type,
+      paymentDate: entry.paymentDate,
+      netCents: centsFromDecimal(entry.netAmount),
+      vatCents: centsFromDecimal(entry.vatAmount),
+      grossCents: centsFromDecimal(entry.grossAmount),
+      bankedGrossCents: entry.bankedGrossAmount === null
+        ? null
+        : centsFromDecimal(entry.bankedGrossAmount),
+      cashDiscountRate: entry.cashDiscountRate === null
+        ? null
+        : Number(entry.cashDiscountRate),
+    })),
+    today
+  )
+
+  const taxPayments = paymentRows.slice(0, 12).map((payment) => ({
+    id: payment.id,
+    taxLiabilityId: payment.taxLiabilityId,
+    type: payment.type,
+    periodKey: payment.periodKey,
+    periodLabel: payment.periodLabel,
+    calculatedCents: centsFromDecimal(payment.calculatedAmount),
+    advisedCents: centsFromDecimal(payment.advisedAmount),
+    paidCents: centsFromDecimal(payment.paidAmount),
+    paidAt: toDateOnly(payment.paidAt),
+    source: payment.source,
+    settlesPeriod: payment.settlesPeriod,
+    notes: payment.notes,
+  }))
+
   return NextResponse.json(
     {
       profile: {
@@ -218,6 +274,8 @@ export async function GET() {
       urgent,
       timeline,
       liabilities: serializedLiabilities,
+      earnings,
+      taxPayments,
       recentEntries,
       calculationNote:
         'Planning estimate only. Confirm filing periods, due dates and assessed amounts with your Steuerberater or tax notice.',
