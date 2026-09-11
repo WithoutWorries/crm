@@ -111,6 +111,13 @@ assert.equal(earnings.grossCashReceivedCents, 1_723_922)
 assert.equal(earnings.businessCostsCents, 100_000)
 assert.equal(earnings.recordedResultCents, 1_548_674)
 assert.equal(earnings.unconfirmedCashCount, 1)
+assert.deepEqual(earnings.sources, {
+  issuedInvoiceRevenueCents: 0,
+  clientRemittanceRevenueCents: 1_648_674,
+  issuedInvoiceCount: 0,
+  clientRemittanceCount: 2,
+  businessCostCount: 1,
+})
 assert.equal(earnings.months.length, 24)
 assert.deepEqual(earnings.months.at(-2), {
   key: '2026-08',

@@ -45,6 +45,11 @@ export function summarizeTaxEarnings(
   let grossCashReceivedCents = 0
   let businessCostsCents = 0
   let unconfirmedCashCount = 0
+  let issuedInvoiceRevenueCents = 0
+  let clientRemittanceRevenueCents = 0
+  let issuedInvoiceCount = 0
+  let clientRemittanceCount = 0
+  let businessCostCount = 0
 
   for (const entry of entries) {
     if (!entry.paymentDate) continue
@@ -71,6 +76,15 @@ export function summarizeTaxEarnings(
       revenueExVatCents += revenueCents
       businessCostsCents += costsCents
       grossCashReceivedCents += cashCents ?? 0
+      if (entry.type === 'ISSUED_INVOICE') {
+        issuedInvoiceRevenueCents += revenueCents
+        issuedInvoiceCount += 1
+      } else if (entry.type === 'CLIENT_REMITTANCE') {
+        clientRemittanceRevenueCents += revenueCents
+        clientRemittanceCount += 1
+      } else {
+        businessCostCount += 1
+      }
       if (entry.type === 'CLIENT_REMITTANCE' && entry.bankedGrossCents === null) {
         unconfirmedCashCount += 1
       }
@@ -120,6 +134,13 @@ export function summarizeTaxEarnings(
     businessCostsCents,
     recordedResultCents: revenueExVatCents - businessCostsCents,
     unconfirmedCashCount,
+    sources: {
+      issuedInvoiceRevenueCents,
+      clientRemittanceRevenueCents,
+      issuedInvoiceCount,
+      clientRemittanceCount,
+      businessCostCount,
+    },
     months,
   }
 }

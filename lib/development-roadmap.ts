@@ -156,6 +156,13 @@ export const ROADMAP_STAGES: RoadmapStage[] = [
 export const PROGRESS_ENTRIES: ProgressEntry[] = [
   {
     date: '11 September 2026',
+    title: 'Earnings provenance made visible',
+    detail:
+      'Each earnings figure now explains its sources through a pointer-hover or tap panel, including recent contributing months. A collapsible visual guide distinguishes recorded invoices and remittances from Patreon and other sources that are not yet imported.',
+    stage: null,
+  },
+  {
+    date: '11 September 2026',
     title: 'Tax payment evidence and earnings trend implemented',
     detail:
       'Tax payments now keep the app calculation, accountant-advised amount and actual bank payment separate, including full or partial settlement and a reversible audit trail. The dashboard adds current-year recorded earnings and a vivid 24-month income, cost and result chart.',

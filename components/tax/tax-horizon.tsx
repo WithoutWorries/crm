@@ -8,11 +8,14 @@ import {
   Banknote,
   CalendarClock,
   Check,
+  ChevronDown,
   ChevronRight,
   CircleDollarSign,
   Download,
   FileCheck2,
   FileUp,
+  HelpCircle,
+  Info,
   Landmark,
   Loader2,
   LockKeyhole,
@@ -93,6 +96,13 @@ export interface TaxDashboardData {
     businessCostsCents: number
     recordedResultCents: number
     unconfirmedCashCount: number
+    sources: {
+      issuedInvoiceRevenueCents: number
+      clientRemittanceRevenueCents: number
+      issuedInvoiceCount: number
+      clientRemittanceCount: number
+      businessCostCount: number
+    }
     months: Array<{
       key: string
       label: string
@@ -342,6 +352,9 @@ export function TaxHorizon({ initialData }: { initialData?: TaxDashboardData }) 
 
   const currency = data.profile.currency
   const firstUrgent = data.urgent[0]
+  const recentEarningMonths = data.earnings.months
+    .filter((month) => month.key.startsWith(String(data.earnings.year)) && month.revenueExVatCents > 0)
+    .slice(-4)
 
   return (
     <div className="mx-auto max-w-[1500px] space-y-6">
@@ -389,11 +402,41 @@ export function TaxHorizon({ initialData }: { initialData?: TaxDashboardData }) 
           <p className="max-w-xl text-xs leading-5 text-slate-400 dark:text-fmea-dim">Payment-date view. Figures are only as complete as the income and business costs recorded here.</p>
         </div>
         <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          <EarningsMetric label="Net revenue" value={money(data.earnings.revenueExVatCents, currency)} detail="Income excluding VAT" tone="cyan" />
-          <EarningsMetric label="Gross cash received" value={money(data.earnings.grossCashReceivedCents, currency)} detail={data.earnings.unconfirmedCashCount ? `${data.earnings.unconfirmedCashCount} bank amount${data.earnings.unconfirmedCashCount === 1 ? '' : 's'} not yet counted` : 'Bank receipts including VAT'} tone="blue" />
-          <EarningsMetric label="Business costs" value={money(data.earnings.businessCostsCents, currency)} detail="Recorded costs excluding VAT" tone="amber" />
-          <EarningsMetric label="Recorded result" value={money(data.earnings.recordedResultCents, currency)} detail="Net revenue less recorded costs" tone={data.earnings.recordedResultCents < 0 ? 'rose' : 'violet'} />
+          <EarningsMetric label="Net revenue" value={money(data.earnings.revenueExVatCents, currency)} detail="Income excluding VAT" tone="cyan" explanation={<>
+            <MiniFlow steps={['Paid record', 'Reconciled net', 'VAT removed']} />
+            <BreakdownRow label={`${data.earnings.sources.clientRemittanceCount} client remittance${data.earnings.sources.clientRemittanceCount === 1 ? '' : 's'}`} value={money(data.earnings.sources.clientRemittanceRevenueCents, currency)} />
+            <BreakdownRow label={`${data.earnings.sources.issuedInvoiceCount} issued invoice${data.earnings.sources.issuedInvoiceCount === 1 ? '' : 's'}`} value={money(data.earnings.sources.issuedInvoiceRevenueCents, currency)} />
+            <div className="mt-3 rounded-xl border border-amber-400/30 bg-amber-400/10 p-2.5 text-[11px] leading-4 text-amber-200"><strong>Patreon is not included.</strong> Its CSV importer is the next data-source stage.</div>
+            {recentEarningMonths.length > 0 && <div className="mt-3 border-t border-white/10 pt-2"><p className="mb-1 text-[9px] font-bold uppercase tracking-wider text-slate-500">Recent contributing months</p>{recentEarningMonths.map((month) => <BreakdownRow key={month.key} label={month.label} value={money(month.revenueExVatCents, currency)} />)}</div>}
+          </>} />
+          <EarningsMetric label="Gross cash received" value={money(data.earnings.grossCashReceivedCents, currency)} detail={data.earnings.unconfirmedCashCount ? `${data.earnings.unconfirmedCashCount} bank amount${data.earnings.unconfirmedCashCount === 1 ? '' : 's'} not yet counted` : 'Bank receipts including VAT'} tone="blue" explanation={<>
+            <MiniFlow steps={['Payment date', 'Bank receipt', 'Gross cash']} />
+            <p className="text-[11px] leading-5 text-slate-300">Issued invoices use their gross paid amount. Client remittances use the amount confirmed on the bank statement.</p>
+            {data.earnings.unconfirmedCashCount > 0 && <p className="mt-2 rounded-xl bg-amber-400/10 p-2.5 text-[11px] leading-4 text-amber-200">{data.earnings.unconfirmedCashCount} paid remittance{data.earnings.unconfirmedCashCount === 1 ? ' has' : 's have'} no confirmed bank amount and is excluded here.</p>}
+          </>} />
+          <EarningsMetric label="Business costs" value={money(data.earnings.businessCostsCents, currency)} detail="Recorded costs excluding VAT" tone="amber" explanation={<>
+            <MiniFlow steps={['Paid expense', 'VAT separated', 'Net cost']} />
+            <BreakdownRow label={`Expense record${data.earnings.sources.businessCostCount === 1 ? '' : 's'}`} value={String(data.earnings.sources.businessCostCount)} />
+            <p className="mt-2 text-[11px] leading-5 text-slate-300">Only expenses entered through <strong>Log expense VAT</strong> are counted. This is not yet a complete bookkeeping expense ledger.</p>
+          </>} />
+          <EarningsMetric label="Recorded result" value={money(data.earnings.recordedResultCents, currency)} detail="Net revenue less recorded costs" tone={data.earnings.recordedResultCents < 0 ? 'rose' : 'violet'} explanation={<>
+            <MiniFlow steps={['Net revenue', 'Less net costs', 'Recorded result']} />
+            <BreakdownRow label="Net revenue" value={money(data.earnings.revenueExVatCents, currency)} />
+            <BreakdownRow label="Less recorded costs" value={`−${money(data.earnings.businessCostsCents, currency)}`} />
+            <p className="mt-2 text-[11px] leading-5 text-slate-300">A planning view of the records in this app—not taxable profit and not a balance sheet.</p>
+          </>} />
         </div>
+
+        <details className="group mt-5 overflow-hidden rounded-2xl border border-stone-200 bg-stone-50/70 dark:border-fmea-border dark:bg-fmea-bg3/55">
+          <summary className="flex cursor-pointer list-none items-center gap-3 px-4 py-3.5 text-sm font-semibold text-slate-800 marker:content-none dark:text-fmea-text"><HelpCircle className="h-4 w-4 text-cyan-700 dark:text-fmea-accent" /><span className="flex-1">How to read these figures</span><span className="text-xs font-normal text-slate-400">Sources, timing and boundaries</span><ChevronDown className="h-4 w-4 text-slate-400 transition group-open:rotate-180" /></summary>
+          <div className="border-t border-stone-200 p-4 dark:border-fmea-border">
+            <div className="grid gap-4 lg:grid-cols-[1.35fr_1fr_1fr]">
+              <HowToPanel tone="cyan" title="Revenue flow"><MiniFlow light steps={['Money reaches bank', 'Invoice or remittance', 'Cash discount reconciled', 'Net revenue ex VAT']} /><p>Income enters the total on its payment date—not the document date.</p></HowToPanel>
+              <HowToPanel tone="emerald" title="Included now"><p><strong>Client remittances</strong> and <strong>issued invoices</strong> recorded as paid in Tax Horizon.</p><p>Business costs appear only when logged as expense VAT.</p></HowToPanel>
+              <HowToPanel tone="amber" title="Not included yet"><p><strong>Patreon income</strong>, bank feeds and unrecorded expenses.</p><p>The Patreon CSV cannot yet be uploaded here; its dedicated importer remains the next source stage.</p></HowToPanel>
+            </div>
+          </div>
+        </details>
       </section>
 
       <TaxHorizonChart timeline={data.timeline} currency={currency} />
@@ -545,7 +588,10 @@ function MetricCard({ icon: Icon, label, value, detail, tone, hero = false, acti
   return <div className={cn('rounded-3xl border p-5 sm:p-6', styles, hero && 'md:-translate-y-1')}><div className="flex items-start justify-between"><div className={cn('flex h-10 w-10 items-center justify-center rounded-xl', inverted ? 'bg-white/15' : tone === 'amber' ? 'bg-amber-100 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300' : 'bg-slate-100 text-slate-600 dark:bg-fmea-bg3 dark:text-fmea-dim')}><Icon className="h-5 w-5" /></div>{action}</div><p className={cn('mt-5 text-xs font-semibold uppercase tracking-[0.12em]', inverted ? 'text-white/75' : 'text-slate-400 dark:text-fmea-dim')}>{label}</p><p className={cn('mt-1 font-semibold tracking-tight tabular-nums', hero ? 'text-4xl' : 'text-3xl', inverted ? '' : 'text-slate-950 dark:text-fmea-hi')}>{value}</p><p className={cn('mt-2 text-xs', inverted ? 'text-white/70' : 'text-slate-500 dark:text-fmea-dim')}>{detail}</p></div>
 }
 
-function EarningsMetric({ label, value, detail, tone }: { label: string; value: string; detail: string; tone: 'cyan' | 'blue' | 'amber' | 'violet' | 'rose' }) {
+function EarningsMetric({ label, value, detail, tone, explanation }: { label: string; value: string; detail: string; tone: 'cyan' | 'blue' | 'amber' | 'violet' | 'rose'; explanation: ReactNode }) {
+  const [hovered, setHovered] = useState(false)
+  const [pinned, setPinned] = useState(false)
+  const open = hovered || pinned
   const styles = {
     cyan: 'border-cyan-200 bg-cyan-50 text-cyan-950 dark:border-cyan-800 dark:bg-cyan-950/35 dark:text-cyan-100',
     blue: 'border-blue-200 bg-blue-50 text-blue-950 dark:border-blue-800 dark:bg-blue-950/35 dark:text-blue-100',
@@ -553,7 +599,24 @@ function EarningsMetric({ label, value, detail, tone }: { label: string; value: 
     violet: 'border-violet-200 bg-violet-50 text-violet-950 dark:border-violet-800 dark:bg-violet-950/35 dark:text-violet-100',
     rose: 'border-rose-200 bg-rose-50 text-rose-950 dark:border-rose-800 dark:bg-rose-950/35 dark:text-rose-100',
   }[tone]
-  return <div className={cn('rounded-2xl border p-4', styles)}><p className="text-[10px] font-bold uppercase tracking-[0.12em] opacity-65">{label}</p><p className="mt-1 text-2xl font-semibold tracking-tight tabular-nums">{value}</p><p className="mt-1 text-[11px] opacity-65">{detail}</p></div>
+  return <div className={cn('relative rounded-2xl border p-4', styles, open && 'z-50')} onPointerEnter={(event) => { if (event.pointerType === 'mouse') setHovered(true) }} onPointerLeave={(event) => { if (event.pointerType === 'mouse') setHovered(false) }} onKeyDown={(event) => { if (event.key === 'Escape') setPinned(false) }}><button type="button" onClick={() => setPinned((current) => !current)} className="absolute right-3 top-3 rounded-full p-1 opacity-55 transition hover:bg-black/5 hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-current dark:hover:bg-white/10" aria-label={`Explain ${label}`} aria-expanded={open}><Info className="h-3.5 w-3.5" /></button><p className="pr-7 text-[10px] font-bold uppercase tracking-[0.12em] opacity-65">{label}</p><p className="mt-1 text-2xl font-semibold tracking-tight tabular-nums">{value}</p><p className="mt-1 text-[11px] opacity-65">{detail}</p>{open && <div className="absolute left-2 right-2 top-[calc(100%-0.4rem)] z-50 rounded-2xl border border-slate-700 bg-slate-950 p-4 text-left text-white shadow-2xl shadow-slate-950/35" role="tooltip"><div className="mb-3 flex items-center justify-between gap-3"><p className="text-xs font-semibold text-white">How {label.toLowerCase()} is formed</p><span className="text-[9px] text-slate-500">{pinned ? 'Tap ⓘ to close' : 'Move away to close'}</span></div>{explanation}</div>}</div>
+}
+
+function BreakdownRow({ label, value }: { label: string; value: string }) {
+  return <div className="flex items-baseline justify-between gap-3 border-b border-white/5 py-1.5 text-[11px] last:border-0"><span className="text-slate-400">{label}</span><strong className="shrink-0 tabular-nums text-slate-100">{value}</strong></div>
+}
+
+function MiniFlow({ steps, light = false }: { steps: string[]; light?: boolean }) {
+  return <div className="mb-3 flex flex-wrap items-center gap-1.5">{steps.map((step, index) => <span key={step} className="contents"><span className={cn('rounded-lg border px-2 py-1 text-[9px] font-semibold', light ? 'border-current/15 bg-white/60 dark:bg-white/5' : 'border-cyan-400/20 bg-cyan-400/10 text-cyan-200')}>{step}</span>{index < steps.length - 1 && <ChevronRight className="h-3 w-3 shrink-0 opacity-40" />}</span>)}</div>
+}
+
+function HowToPanel({ title, tone, children }: { title: string; tone: 'cyan' | 'emerald' | 'amber'; children: ReactNode }) {
+  const styles = {
+    cyan: 'border-cyan-200 bg-cyan-50/70 text-cyan-950 dark:border-cyan-900/60 dark:bg-cyan-950/20 dark:text-cyan-100',
+    emerald: 'border-emerald-200 bg-emerald-50/70 text-emerald-950 dark:border-emerald-900/60 dark:bg-emerald-950/20 dark:text-emerald-100',
+    amber: 'border-amber-200 bg-amber-50/70 text-amber-950 dark:border-amber-900/60 dark:bg-amber-950/20 dark:text-amber-100',
+  }[tone]
+  return <div className={cn('rounded-2xl border p-4 text-xs leading-5', styles)}><p className="mb-2 font-semibold">{title}</p><div className="space-y-2 opacity-80">{children}</div></div>
 }
 
 function QuickAction({ icon: Icon, label, detail, onClick }: { icon: typeof ArrowDownToLine; label: string; detail: string; onClick: () => void }) {

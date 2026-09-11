@@ -88,6 +88,9 @@ is a Stage 7 feature and a prerequisite for external access.
 Tax Horizon records are private to their owner, including for administrators. The
 administrator backup includes only the exporting administrator's tax and work records. The
 dashboard is a planning aid and does not replace a tax notice or professional advice.
+Recorded earnings currently include paid issued invoices and reconciled client remittances
+entered in Tax Horizon. Patreon and other external income are not included until their
+dedicated importers are implemented.
 Uploaded remittance PDFs are sent to Anthropic only after an explicit action, are not stored
 by Reference, and are not uploaded to Anthropic's persistent Files API. Extracted values
 remain proposals until reviewed and confirmed by the signed-in user.
